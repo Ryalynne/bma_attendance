@@ -1,4 +1,4 @@
-# electron-project
+# my-project
 
 ## Project setup
 ```
