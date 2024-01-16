@@ -17,8 +17,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Path to the SQLite database file
-const dbPath = path.join(__dirname, 'database.db')
-//const dbPath = './database1.db'; // Replace with the actual path to your database file
+// const dbPath = path.join(__dirname, 'database.db')
+const dbPath = './database.db'; // Replace with the actual path to your database file
 
 const db = new sqlite3.Database(dbPath);
 
