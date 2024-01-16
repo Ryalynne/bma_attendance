@@ -7,31 +7,35 @@
 </template>
 
 <script>
-// const { ipcRenderer } = require('electron');
+const { ipcRenderer } = require('electron');
 
-// export default {
-//   data() {
-//     return {
-//       qrInput: ''
-//     };
-//   },
-//   methods: {
-//     insertData() {
-//       if (this.qrInput) {
-//         const currentDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
-//         const inputTime = currentDate;
-//         const data = {
-//           QRCODE: this.qrInput,
-//           TIME: inputTime,
-//         };
-//         ipcRenderer.send('insert-attendance', data);
-//       } else {
-//         alert('Please provide QR Code and Time');
-//       }
-//     },
-//   },
-// };
+export default {
+  data() {
+    return {
+      qrInput: ''
+    };
+  },
+  methods: {
+    insertData() {
+      if (this.qrInput) {
+        const currentDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const inputTime = currentDate;
+        const data = {
+          body: {
+            QRCODE: this.qrInput,
+            TIME: inputTime,
+          }
+        };
+
+        ipcRenderer.send('insert-attendance', data);
+      } else {
+        alert('Please provide QR Code and Time');
+      }
+    },
+  },
+};
 </script>
+
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
