@@ -1,25 +1,22 @@
 <template>
   <img alt="Vue logo" src="./assets/logo.png">
   <HelloWorld msg="Welcome to Your Vue.js App" />
-  <TestComponent />
+  <DisplayEmployeeAccount />
+  <DisplayEmployeeAttendance />
 </template>
 
 
 <script>
 import HelloWorld from './components/HelloWorld.vue';
-import TestComponent from './components/TestComponent.vue';
-const { ipcRenderer } = require('electron');
+import DisplayEmployeeAccount from './components/DisplayEmployeeAccount.vue';
+import DisplayEmployeeAttendance from './components/DisplayEmployeeAttendance.vue';
 
 export default {
   name: 'App',
   components: {
     HelloWorld,
-    TestComponent
-  },
-  methods: {
-    sendIpcMessage() {
-      ipcRenderer.send('some-message', 'Hello from renderer process!');
-    },
+    DisplayEmployeeAccount,
+    DisplayEmployeeAttendance
   },
 };
 </script>

@@ -2,7 +2,7 @@
   <h1>Data from SQLite</h1>
   <div>
     <input v-model="qrInput" placeholder="Enter QRCODE" />
-    <button @click="insertData()">Insert Data</button>
+    <button @click="insertData()">Enter QRCODE</button>
   </div>
 </template>
 
@@ -28,6 +28,14 @@ export default {
         };
 
         ipcRenderer.send('insert-attendance', data);
+
+        ipcRenderer.on('insert-attendance-success', (event, message) => {
+          console.log(message); // Handle success message
+        });
+
+        ipcRenderer.on('insert-attendance-error', (event, errorMessage) => {
+          console.error(errorMessage); // Handle error message
+        });
       } else {
         alert('Please provide QR Code and Time');
       }
@@ -36,8 +44,6 @@ export default {
 };
 </script>
 
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 h3 {
   margin: 40px 0 0;

@@ -121,69 +121,70 @@ if (isDevelopment) {
   }
 }
 
-
 ipcMain.on('insert-attendance', (event, data) => {
   const { QRCODE, TIME } = data.body;
   const handleError = (errorMessage) => {
-    res.status(500).send(errorMessage);
+    event.sender.send('insert-attendance-error', errorMessage);
+  };
+
+  const currentDate = new Date().toISOString().slice(0, 10);
+
+  const insertOrUpdateAttendance = (tableName, idColumn, entityId, timeColumn) => {
+    const selectQuery = `SELECT * FROM ${tableName} WHERE ${idColumn} = ? AND Time_in LIKE ?`;
+    const updateQuery = `UPDATE ${tableName} SET Time_out = ? WHERE id = ? AND Time_in LIKE ?`;
+    const insertQuery = `INSERT INTO ${tableName} (${idColumn}, Time_in) VALUES (?, ?)`;
+
+    db.get(selectQuery, [entityId, currentDate + '%'], (err, attendance) => {
+      if (err) {
+        return handleError(err.message);
+      }
+
+      if (attendance) {
+        const attendanceId = attendance.id;
+        db.run(updateQuery, [TIME, attendanceId, currentDate + '%'], (err) => {
+          if (err) {
+            return handleError(err.message);
+          }
+          event.sender.send('insert-attendance-success', 'Data updated successfully');
+        });
+      } else {
+        db.run(insertQuery, [entityId, TIME], (err) => {
+          if (err) {
+            return handleError(err.message);
+          }
+          event.sender.send('insert-attendance-success', 'Data inserted successfully');
+        });
+      }
+    });
   };
 
   db.get('SELECT * FROM Employee_account WHERE email = ?', [QRCODE], (err, employeeRow) => {
-
     if (err) {
       return handleError(err.message);
     }
 
     if (employeeRow) {
-      const employeeId = employeeRow.id;
-      const currentDate = new Date().toISOString().slice(0, 10); // This will get the date in YYYY-MM-DD format
-      db.get('SELECT * FROM Employee_attendance WHERE Time_out is null AND Employee_id = ? AND Time_in LIKE ?  ', [employeeId, currentDate + '%'], (err, employeeAttendance) => {
-        if (err) {
-          return handleError(err.message);
-        }
-
-        if (employeeAttendance) {
-          const attendanceId = employeeAttendance.id;
-          // Update time_out for existing attendance
-          db.run('UPDATE Employee_attendance SET Time_out = ? WHERE id = ? AND Time_in LIKE ?', [TIME, attendanceId, currentDate + '%'], function (err) {
-            if (err) {
-              return handleError(err.message);
-            }
-            res.send('Data updated successfully');
-          });
-        } else {
-          // Insert new attendance record
-          db.run('INSERT INTO Employee_attendance (Employee_id, Time_in) VALUES (?, ?)', [employeeId, TIME], function (err) {
-            if (err) {
-              return handleError(err.message);
-            }
-            res.send('Data inserted successfully');
-          });
-        }
-      });
+      insertOrUpdateAttendance('Employee_attendance', 'Employee_id', employeeRow.id, 'Time_out');
     } else {
-      const currentDate = new Date().toISOString().slice(0, 10); // This will get the date in YYYY-MM-DD format
-      db.get('SELECT * FROM Employee_attendance WHERE Time_out is null AND Employee_id = ? AND Time_in LIKE ? ', [QRCODE, currentDate + '%'], (err, studentAttendance) => {
+      db.get('SELECT * FROM Student_attendance WHERE Student_id = ? AND Time_in LIKE ? ', [QRCODE, currentDate + '%'], (err, studentAttendance) => {
         if (err) {
           return handleError(err.message);
         }
 
         if (studentAttendance) {
           const attendanceId = studentAttendance.id;
-          // Update time_out for existing attendance
-          db.run('UPDATE Student_attendance SET Time_out = ? WHERE id = ? AND Time_in LIKE ?', [TIME, attendanceId, currentDate + '%'], function (err) {
+          db.run('UPDATE Student_attendance SET Time_out = ? WHERE id = ? AND Time_in LIKE ?', [TIME, attendanceId, currentDate + '%'], (err) => {
             if (err) {
               return handleError(err.message);
             }
-            res.send('Data updated successfully');
+            event.sender.send('insert-attendance-success', 'Data updated successfully');
           });
         } else {
-          const attendanceId = studentAttendance.id;
-          db.run('INSERT INTO Student_attendance (Student_id, Time_in) VALUES (?, ?)', [attendanceId, TIME], function (err) {
+          db.run('INSERT INTO Student_attendance (Student_id, Time_in) VALUES (?, ?)', [QRCODE, TIME], (err) => {
             if (err) {
               return handleError(err.message);
             }
-            res.send('Data inserted successfully');
+            event.sender.send('insert-attendance-success', 'Data inserted successfully');
           });
         }
       });
@@ -192,13 +193,29 @@ ipcMain.on('insert-attendance', (event, data) => {
 });
 
 
-ipcMain.on('get-employee-data', (event) => {
-  db.all('SELECT * FROM Employee_account', (err, rows) => {
+
+
+
+ipcMain.on('get-employee-attendance', (event) => {
+  db.all('SELECT Employee_attendance.id,Employee_account.Firstname, Employee_account.Lastname,Employee_attendance.Time_in,Employee_attendance.Time_out FROM Employee_attendance JOIN Employee_Account ON Employee_attendance.Employee_id = Employee_Account.id where Employee_attendance.time_in != "" ', (err, rows) => {
     if (err) {
       console.error('Error fetching employee data', err.message);
-      event.reply('employee-data-reply', 'Error fetching employee data');
+      event.reply('get-employee-attendance', 'Error fetching employee data');
     } else {
-      event.reply('employee-data-reply', JSON.stringify(rows));
+      event.reply('get-employee-attendance', JSON.stringify(rows));
+    }
+  });
+});
+
+
+
+ipcMain.on('get-employee-account', (event) => {
+  db.all('SELECT * FROM Employee_account', (err, rows) => {
+    if (err) {
+      ;
+      event.reply('get-employee-account', 'Error fetching employee data');
+    } else {
+      event.reply('get-employee-account', JSON.stringify(rows));
     }
   });
 });
