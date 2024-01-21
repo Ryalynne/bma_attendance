@@ -8,9 +8,18 @@
 // const fs = require('fs');
 // const isDevelopment = process.env.NODE_ENV !== 'production'
 
-import { app, protocol, BrowserWindow, ipcMain } from "electron";
-import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
+import {
+  app,
+  protocol,
+  BrowserWindow,
+  ipcMain
+} from "electron";
+import {
+  createProtocol
+} from "vue-cli-plugin-electron-builder/lib";
+import installExtension, {
+  VUEJS3_DEVTOOLS
+} from "electron-devtools-installer";
 const sqlite3 = require("sqlite3");
 const isDevelopment = process.env.NODE_ENV !== "production";
 //const fs = require("fs");
@@ -19,7 +28,7 @@ const path = require("path");
 let win;
 let db;
 /* // Path to the SQLite database file
-const dbPath = path.join(__dirname, "database.db");
+const dbPath = path.join(app.getAppPath(), "database.db");
 //const dbPath = './database.db'; // Replace with the actual path to your database file
 
 const db = new sqlite3.Database(dbPath);
@@ -45,9 +54,13 @@ if (!fs.existsSync(dbPath)) {
 } */
 
 // Scheme must be registered before the app is ready
-protocol.registerSchemesAsPrivileged([
-  { scheme: "app", privileges: { secure: true, standard: true } },
-]);
+protocol.registerSchemesAsPrivileged([{
+  scheme: "app",
+  privileges: {
+    secure: true,
+    standard: true
+  }
+}, ]);
 
 async function createWindow() {
   // Create the browser window.
@@ -91,10 +104,10 @@ function createDatabase() {
       "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, last_name TEXT, course TEXT, is_actived INTEGER)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     );
 
     // Pass the SQLite database instance to the renderer process
@@ -153,6 +166,7 @@ if (isDevelopment) {
 // Store Employee into Database
 ipcMain.on("add-employee", (event, data, query) => {
   const success = db.run(query, data);
+  console.log("Save Employee");
   event.reply("add-employee-response", success);
   /*  console.log(data);
   db.run(query, data, (err) => {
@@ -168,14 +182,73 @@ ipcMain.on("get-employee", (event, data, query) => {
   db.get(query, data, (err, result) => {
     if (err) {
       console.log("Error in get-employee query:", err.message);
-      event.reply("get-employee-response", { error: err.message });
+      event.reply("get-employee-response", {
+        error: err.message
+      });
     } else {
       // Send the employee details (or null if not found)
+      //console.log(result)
       event.reply("get-employee-response", result);
     }
   });
 });
-/* 
+
+
+// Select Table
+ipcMain.on('select-table', (event, query, data) => {
+  db.all(query, (error, response) => {
+    if (error) {
+      console.log(error)
+    }
+    event.reply('select-table-response', JSON.stringify(response));
+  });
+});
+// Select Table Where
+ipcMain.on('select-table-where', (event, query, data) => {
+  const dbPath = path.join(app.getAppPath(), "database.db");
+  const database = new sqlite3.Database(dbPath); // Use the global db variable
+  database.all(query, data, (error, response) => {
+    if (error) {
+      console.log(error)
+    }
+    event.reply('select-table-response', response);
+  });
+  database.close()
+});
+
+
+// Attendance Function
+ipcMain.on('get-attendance', (event, query, data) => {
+  db.get(query, data, (err, result) => {
+    if (err) {
+      console.log("Error in get-attendance query:", err.message);
+      event.reply("get-attendance-error", {
+        error: err.message
+      });
+    } else {
+      // Send the attendance details (or null if not found)
+      //console.log(result)
+      event.reply("get-attendance-response", result);
+    }
+  });
+});
+// Store Attendance into Database
+ipcMain.on("store-attendance", (event, query, data) => {
+  const dbPath = path.join(app.getAppPath(), "database.db");
+  const database = new sqlite3.Database(dbPath); // Use the global db variable
+  database.run(query, data, (err) => {
+    if (err) {
+      console.log("Error adding employee:", err);
+    } else {
+      console.log("Employee Attendance added successfully.");
+    }
+  });
+  /* const success = database.run(query, data);
+  event.reply("store-attendance-response", success);
+  database.close() */
+
+});
+/*
 ipcMain.on("insert-attendance", (event, data) => {
   const { QRCODE, TIME } = data.body;
   const handleError = (errorMessage) => {

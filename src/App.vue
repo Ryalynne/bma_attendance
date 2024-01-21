@@ -33,7 +33,8 @@ import ApiStatus from '@/components/ApiStatus.vue'
 import RealTimeClock from '@/components/RealTimeClock.vue'
 import CardProfile from '@/components/CardProfile.vue'
 import AttendanceList from '@/components/AttendanceList.vue'
-import EmployeeModel from '@/database/employee_model'
+import EmployeeModel from '@/database/Employee'
+import AttendanceModel from "@/database/Attendance"
 import axios from 'axios'
 export default {
   name: 'App',
@@ -49,10 +50,14 @@ export default {
       pollInterval: 5000, // Poll every 5 seconds,
       profileDetails: null,
       attendanceList: { 'employee': [], 'student': [] },
+      attendanceModel: new AttendanceModel(),
       employeeModel: new EmployeeModel()
     }
   },
   mounted() {
+    //const allEmployee = this.employeeModel.fetchAllEmployee();
+    //console.log(allEmployee)
+    this.refreshTable()
     this.startPolling();
     this.applicationSetUp()
   },
@@ -85,22 +90,65 @@ export default {
     },
     async applicationSetUp() {
       // This method Save the basi information of The Employee and Student
-
       try {
         const response = await axios.get('data-sync');
         if (response.status == 200) {
           if (response.data.employees) {
             // Get Employee Details
-            response.data.employees.forEach(async element => {
-              // Save Image
-              const data = [element.name, element.department, 'staff', element.email, 1]
-              this.employeeModel.addEmployee(data)
+            response.data.employees.forEach(element => {
+              this.employeeModel.addEmployee(element)
             });
           }
         }
       } catch (error) {
         //return false;
       }
+    },
+    handleKeyDown(event) {
+      if (event.key === "Enter") {
+        event.preventDefault(); // Prevent form submission if needed
+        const barcodeValue = event.target.value.trim();
+        if (barcodeValue.length > 0) {
+          this.processScannedBarcode(barcodeValue);
+          // Clear the input field after processing the scan
+          this.$refs.barcodeInput.value = "";
+        }
+      }
+    },
+    processScannedBarcode(barcode) {
+      // Here you can process the scanned barcode value
+      console.log(barcode, this.currentDate())
+      this.attendanceModel.storeEmployeeAttendace(barcode, this.currentDate(), this.getDateTime())
+      this.refreshTable()
+      /*  this.employeeModel.storeAttendance(barcode, (response) => {
+         console.log(response);
+         // Continue with your logic based on the response
+       }); */
+    },
+    getDateTime() {
+      const currentDateTime = new Date();
+      // Format the date and time as "YYYY-MM-DD HH:mm:ss"
+      const formattedDateTime = `${currentDateTime.getFullYear()}-${(currentDateTime.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}-${currentDateTime.getDate().toString().padStart(2, '0')} ${currentDateTime
+          .getHours()
+          .toString()
+          .padStart(2, '0')}:${currentDateTime.getMinutes().toString().padStart(2, '0')}:${currentDateTime
+            .getSeconds()
+            .toString()
+            .padStart(2, '0')}`;
+      return formattedDateTime.toString()
+    },
+    currentDate() {
+      const currentDateTime = new Date();
+      // Format the date and time as "YYYY-MM-DD HH:mm:ss"
+      const formattedDateTime = `${currentDateTime.getFullYear()}-${(currentDateTime.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}-${currentDateTime.getDate().toString().padStart(2, '0')}`;
+      return formattedDateTime.toString()
+    },
+    refreshTable(){
+      this.attendanceList.employee = this.attendanceModel.fetchEmployeeAttendanceList(this.currentDate())
     }
   },
 }
