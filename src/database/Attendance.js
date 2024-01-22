@@ -49,8 +49,9 @@ class AttendanceModel {
                     } else {
                         if (result.time_out === null) {
                             // UPDATE QUERY
+                            console.log(result.id)
                             const updateQuery = `UPDATE ${this.employeeTable} SET ${this.timeOut} = ? AND ${this.updated} = ? WHERE id = ?`
-                            const updateData = [dateTime, dateTime, response.id]
+                            const updateData = [dateTime, dateTime, result.id]
                             this.insertAttendance(updateQuery, updateData)
                             console.log("For Update")
                         } else {
