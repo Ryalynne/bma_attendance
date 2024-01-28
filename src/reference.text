@@ -1,0 +1,134 @@
+/*
+ipcMain.on("insert-attendance", (event, data) => {
+  const { QRCODE, TIME } = data.body;
+  const handleError = (errorMessage) => {
+    event.sender.send("insert-attendance-error", errorMessage);
+  };
+
+  const currentDate = new Date().toISOString().slice(0, 10);
+
+  const insertOrUpdateAttendance = (
+    tableName,
+    idColumn,
+    entityId,
+    timeColumn
+  ) => {
+    const selectQuery = `SELECT * FROM ${tableName} WHERE ${idColumn} = ? AND Time_in LIKE ?`;
+    const updateQuery = `UPDATE ${tableName} SET Time_out = ? WHERE id = ? AND Time_in LIKE ?`;
+    const insertQuery = `INSERT INTO ${tableName} (${idColumn}, Time_in) VALUES (?, ?)`;
+
+    db.get(selectQuery, [entityId, currentDate + "%"], (err, attendance) => {
+      if (err) {
+        return handleError(err.message);
+      }
+
+      if (attendance) {
+        const attendanceId = attendance.id;
+        db.run(updateQuery, [TIME, attendanceId, currentDate + "%"], (err) => {
+          if (err) {
+            return handleError(err.message);
+          }
+          event.sender.send(
+            "insert-attendance-success",
+            "Data updated successfully"
+          );
+        });
+      } else {
+        db.run(insertQuery, [entityId, TIME], (err) => {
+          if (err) {
+            return handleError(err.message);
+          }
+          event.sender.send(
+            "insert-attendance-success",
+            "Data inserted successfully"
+          );
+        });
+      }
+    });
+  };
+
+  db.get(
+    "SELECT * FROM Employee_account WHERE email = ?",
+    [QRCODE],
+    (err, employeeRow) => {
+      if (err) {
+        return handleError(err.message);
+      }
+
+      if (employeeRow) {
+        insertOrUpdateAttendance(
+          "Employee_attendance",
+          "Employee_id",
+          employeeRow.id,
+          "Time_out"
+        );
+      } else {
+        db.get(
+          "SELECT * FROM Student_attendance WHERE Student_id = ? AND Time_in LIKE ? ",
+          [QRCODE, currentDate + "%"],
+          (err, studentAttendance) => {
+            if (err) {
+              return handleError(err.message);
+            }
+
+            if (studentAttendance) {
+              const attendanceId = studentAttendance.id;
+              db.run(
+                "UPDATE Student_attendance SET Time_out = ? WHERE id = ? AND Time_in LIKE ?",
+                [TIME, attendanceId, currentDate + "%"],
+                (err) => {
+                  if (err) {
+                    return handleError(err.message);
+                  }
+                  event.sender.send(
+                    "insert-attendance-success",
+                    "Data updated successfully"
+                  );
+                }
+              );
+            } else {
+              db.run(
+                "INSERT INTO Student_attendance (Student_id, Time_in) VALUES (?, ?)",
+                [QRCODE, TIME],
+                (err) => {
+                  if (err) {
+                    return handleError(err.message);
+                  }
+                  event.sender.send(
+                    "insert-attendance-success",
+                    "Data inserted successfully"
+                  );
+                }
+              );
+            }
+          }
+        );
+      }
+    }
+  );
+});
+
+ipcMain.on("get-employee-attendance", (event) => {
+  db.all(
+    'SELECT Employee_attendance.id,Employee_account.Firstname, Employee_account.Lastname,Employee_attendance.Time_in,Employee_attendance.Time_out FROM Employee_attendance JOIN Employee_Account ON Employee_attendance.Employee_id = Employee_Account.id where Employee_attendance.time_in != "" ',
+    (err, rows) => {
+      if (err) {
+        console.error("Error fetching employee data", err.message);
+        event.reply("get-employee-attendance", "Error fetching employee data");
+      } else {
+        event.reply("get-employee-attendance", JSON.stringify(rows));
+      }
+    }
+  );
+});
+
+ipcMain.on("get-employee-account", (event) => {
+  db.all("SELECT * FROM Employee_account", (err, rows) => {
+    if (err) {
+      event.reply("get-employee-account", "Error fetching employee data");
+    } else {
+      event.reply("get-employee-account", JSON.stringify(rows));
+    }
+  });
+});
+ */

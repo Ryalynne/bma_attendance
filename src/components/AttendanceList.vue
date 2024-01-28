@@ -20,14 +20,16 @@
                             <th class="text-secondary">DEPARTMENT</th>
                             <th class="text-secondary">TIME IN</th>
                             <th class="text-secondary">TIME OUT</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody v-if="attendanceList.employee">
                         <tr v-for="item in attendanceList.employee" :key="item.id">
                             <td>{{ setName(item) }}</td>
-                            <td>{{ item.department }}</td>
+                            <td>{{ item.department_name }}</td>
                             <td>{{ convertTime(item.time_in) }}</td>
                             <td>{{ item.time_out ? convertTime(item.time_out) : '' }}</td>
+                            <td>{{ convertTime(item.updated_at) }}</td>
                         </tr>
                     </tbody>
                     <tbody v-else>
@@ -52,6 +54,7 @@
                             <th class="text-secondary">COURSE</th>
                             <th class="text-secondary">TIME IN</th>
                             <th class="text-secondary">TIME OUT</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody v-if="attendanceList.student">
@@ -60,6 +63,7 @@
                             <td>{{ item.course_name }}</td>
                             <td>{{ convertTime(item.time_in) }}</td>
                             <td>{{ item.time_out ? convertTime(item.time_out) : '' }}</td>
+                            <td>{{ convertTime(item.updated_at) }}</td>
                         </tr>
                     </tbody>
                     <tbody v-else>

@@ -8,9 +8,18 @@
 // const fs = require('fs');
 // const isDevelopment = process.env.NODE_ENV !== 'production'
 
-import { app, protocol, BrowserWindow, ipcMain } from "electron";
-import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
+import {
+  app,
+  protocol,
+  BrowserWindow,
+  ipcMain
+} from "electron";
+import {
+  createProtocol
+} from "vue-cli-plugin-electron-builder/lib";
+import installExtension, {
+  VUEJS3_DEVTOOLS
+} from "electron-devtools-installer";
 const sqlite3 = require("sqlite3");
 const isDevelopment = process.env.NODE_ENV !== "production";
 //const fs = require("fs");
@@ -45,15 +54,13 @@ if (!fs.existsSync(dbPath)) {
 } */
 
 // Scheme must be registered before the app is ready
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "app",
-    privileges: {
-      secure: true,
-      standard: true,
-    },
+protocol.registerSchemesAsPrivileged([{
+  scheme: "app",
+  privileges: {
+    secure: true,
+    standard: true,
   },
-]);
+}, ]);
 
 async function createWindow() {
   // Create the browser window.
@@ -97,10 +104,10 @@ function createDatabase() {
       "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, last_name TEXT, course TEXT, is_actived INTEGER)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     );
 
     // Pass the SQLite database instance to the renderer process
@@ -161,17 +168,8 @@ ipcMain.on("add-employee", (event, data, query) => {
   const dbPath = path.join(app.getAppPath(), "database.db");
   const database = new sqlite3.Database(dbPath);
   const success = database.run(query, data);
-  console.log("Save Employee");
   event.reply("add-employee-response", success);
   database.close();
-  /*  console.log(data);
-  db.run(query, data, (err) => {
-    if (err) {
-      console.log("Error adding employee:", err);
-    } else {
-      console.log("Employee added successfully.");
-    }
-  }); */
 });
 // Get Employee Details
 ipcMain.on("get-employee", (event, data, query) => {
@@ -188,14 +186,60 @@ ipcMain.on("get-employee", (event, data, query) => {
     }
   });
 });
-
+// Select Employee Details
+ipcMain.on("select-employee", (event, data, query) => {
+  const dbPath = path.join(app.getAppPath(), "database.db");
+  const database = new sqlite3.Database(dbPath);
+  database.get(query, data, (err, result) => {
+    if (err) {
+      console.log("Error in get-employee query:", err.message);
+      event.reply("select-employee-response-error", {
+        error: err.message,
+      });
+    } else {
+      // Send the employee details (or null if not found)
+      //console.log(result)
+      event.reply("select-employee-response", result);
+    }
+  });
+  database.close()
+});
+ipcMain.on("insert-employee", (event, data, selectQuery, insertQuery) => {
+  const dbPath = path.join(app.getAppPath(), "database.db");
+  const database = new sqlite3.Database(dbPath);
+  // Execute the select Employee Query
+  database.get(selectQuery, data.email, (err, result) => {
+    if (err) {
+      console.log("Error in get-employee query:", err.message);
+      event.reply("insert-employee-response-error", {
+        error: err.message,
+      });
+    } else {
+      console.log(data.email + ": " + result)
+      if (!result) {
+        const value = [data.name, 'staff', data.department, data.email, 1]
+        // Save Employee
+        database.run(insertQuery, value, (error2, result2) => {
+          if (error2) {
+            console.log('Insert Employee Error: ' + error2.message)
+          } else {
+            console.log("Save Employee")
+          }
+        });
+      }
+      event.reply("insert-employee-response", result);
+    }
+  });
+})
 // Select Table
 ipcMain.on("select-table", (event, query) => {
   db.all(query, (error, response) => {
     if (error) {
-      console.log(error);
+      event.reply("select-table-response-error", {
+        error: error.message,
+      });
     }
-    event.reply("select-table-response", JSON.stringify(response));
+    event.reply("select-table-response", response);
   });
 });
 // Select Table Where
@@ -227,6 +271,73 @@ ipcMain.on("get-attendance", (event, query, data) => {
   });
 });
 // Store Attendance into Database
+ipcMain.on("store-attendance-v2", (event, queries, data) => {
+  const dbPath = path.join(app.getAppPath(), "database.db");
+  const database = new sqlite3.Database(dbPath); // Use the global db variable
+  //event.reply("store-attendance-v2-response", queries.selectEmployee);
+  //Select first the User
+  database.get(queries.selectUser, data.user, (error, selectResponse) => {
+    if (error) {
+      event.reply("select-query-error", {
+        error: error.message,
+      });
+    } else {
+      const selectDataAttendance = [selectResponse.id, "%" + data.currentDate + "%"]; // Set the User Id and Current Data
+      // Get the Exiting Attendance of the User's
+      database.get(queries.selectAttendance, selectDataAttendance, (error2, selectAttendanceResponse) => {
+        if (error2) {
+          console.log(error2)
+          event.reply("select-query-error", {
+            error: error2.message,
+          });
+        } else {
+          // If the Response is Empty you need to insert the data
+          const insertValue = [selectResponse.id, data.currentDateTime, null, 0, data.currentDateTime, data.currentDateTime]; // Set Attendance Details
+          if (!selectAttendanceResponse) {
+            // Insert Attendance
+            database.run(queries.insert, insertValue, (error3, responseInsert) => {
+              console.log(selectResponse.name + ": Saved Attendance")
+              if (error3) {
+                console.log(error3)
+              }
+              console.log(responseInsert);
+            });
+
+          } else {
+            if (selectAttendanceResponse.time_out === null) {
+              const updateValue = [data.currentDateTime, data.currentDateTime, selectAttendanceResponse.id]
+              database.run(queries.update, updateValue, (error3, responseInsert) => {
+                console.log(selectResponse.name + ": Update Attendance")
+                if (error3) {
+                  console.log(error3)
+                }
+                console.log(responseInsert);
+              });
+
+            } else {
+              database.run(queries.insert, insertValue, (error3, responseInsert) => {
+                console.log(selectResponse.name + ": Insert Attendance")
+                if (error3) {
+                  console.log(error3)
+                }
+                console.log(responseInsert);
+              });
+
+
+            }
+          }
+          // then if Exisiting, update the time out index if the index is null
+          // then if Exisiting again and the time out index is not null try to insert again an attendance of the User's
+          event.reply("store-attendance-v2-response", selectAttendanceResponse);
+        }
+      });
+      event.reply("store-attendance-v2-response", selectDataAttendance);
+
+    }
+  });
+  database.close();
+});
+// Store Attendance into Database
 ipcMain.on("store-attendance", (event, query, data) => {
   const dbPath = path.join(app.getAppPath(), "database.db");
   const database = new sqlite3.Database(dbPath); // Use the global db variable
@@ -241,137 +352,3 @@ ipcMain.on("store-attendance", (event, query, data) => {
   event.reply("store-attendance-response", success);
   database.close() */
 });
-/*
-ipcMain.on("insert-attendance", (event, data) => {
-  const { QRCODE, TIME } = data.body;
-  const handleError = (errorMessage) => {
-    event.sender.send("insert-attendance-error", errorMessage);
-  };
-
-  const currentDate = new Date().toISOString().slice(0, 10);
-
-  const insertOrUpdateAttendance = (
-    tableName,
-    idColumn,
-    entityId,
-    timeColumn
-  ) => {
-    const selectQuery = `SELECT * FROM ${tableName} WHERE ${idColumn} = ? AND Time_in LIKE ?`;
-    const updateQuery = `UPDATE ${tableName} SET Time_out = ? WHERE id = ? AND Time_in LIKE ?`;
-    const insertQuery = `INSERT INTO ${tableName} (${idColumn}, Time_in) VALUES (?, ?)`;
-
-    db.get(selectQuery, [entityId, currentDate + "%"], (err, attendance) => {
-      if (err) {
-        return handleError(err.message);
-      }
-
-      if (attendance) {
-        const attendanceId = attendance.id;
-        db.run(updateQuery, [TIME, attendanceId, currentDate + "%"], (err) => {
-          if (err) {
-            return handleError(err.message);
-          }
-          event.sender.send(
-            "insert-attendance-success",
-            "Data updated successfully"
-          );
-        });
-      } else {
-        db.run(insertQuery, [entityId, TIME], (err) => {
-          if (err) {
-            return handleError(err.message);
-          }
-          event.sender.send(
-            "insert-attendance-success",
-            "Data inserted successfully"
-          );
-        });
-      }
-    });
-  };
-
-  db.get(
-    "SELECT * FROM Employee_account WHERE email = ?",
-    [QRCODE],
-    (err, employeeRow) => {
-      if (err) {
-        return handleError(err.message);
-      }
-
-      if (employeeRow) {
-        insertOrUpdateAttendance(
-          "Employee_attendance",
-          "Employee_id",
-          employeeRow.id,
-          "Time_out"
-        );
-      } else {
-        db.get(
-          "SELECT * FROM Student_attendance WHERE Student_id = ? AND Time_in LIKE ? ",
-          [QRCODE, currentDate + "%"],
-          (err, studentAttendance) => {
-            if (err) {
-              return handleError(err.message);
-            }
-
-            if (studentAttendance) {
-              const attendanceId = studentAttendance.id;
-              db.run(
-                "UPDATE Student_attendance SET Time_out = ? WHERE id = ? AND Time_in LIKE ?",
-                [TIME, attendanceId, currentDate + "%"],
-                (err) => {
-                  if (err) {
-                    return handleError(err.message);
-                  }
-                  event.sender.send(
-                    "insert-attendance-success",
-                    "Data updated successfully"
-                  );
-                }
-              );
-            } else {
-              db.run(
-                "INSERT INTO Student_attendance (Student_id, Time_in) VALUES (?, ?)",
-                [QRCODE, TIME],
-                (err) => {
-                  if (err) {
-                    return handleError(err.message);
-                  }
-                  event.sender.send(
-                    "insert-attendance-success",
-                    "Data inserted successfully"
-                  );
-                }
-              );
-            }
-          }
-        );
-      }
-    }
-  );
-});
-
-ipcMain.on("get-employee-attendance", (event) => {
-  db.all(
-    'SELECT Employee_attendance.id,Employee_account.Firstname, Employee_account.Lastname,Employee_attendance.Time_in,Employee_attendance.Time_out FROM Employee_attendance JOIN Employee_Account ON Employee_attendance.Employee_id = Employee_Account.id where Employee_attendance.time_in != "" ',
-    (err, rows) => {
-      if (err) {
-        console.error("Error fetching employee data", err.message);
-        event.reply("get-employee-attendance", "Error fetching employee data");
-      } else {
-        event.reply("get-employee-attendance", JSON.stringify(rows));
-      }
-    }
-  );
-});
-
-ipcMain.on("get-employee-account", (event) => {
-  db.all("SELECT * FROM Employee_account", (err, rows) => {
-    if (err) {
-      event.reply("get-employee-account", "Error fetching employee data");
-    } else {
-      event.reply("get-employee-account", JSON.stringify(rows));
-    }
-  });
-});
- */

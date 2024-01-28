@@ -14,7 +14,7 @@
             <div class="col-md-9">
                 <div class="card-body">
                     <div class="display-6 fw-bolder text-success">{{ profileData ? profileData.name : name }}</div>
-                    <span class="badge bg-secondary">{{ profileData ? profileData.department : department }}</span>
+                    <span class="badge bg-secondary">{{ profileData ? profileData.department_name : department }}</span>
                     <div class="row">
                         <div class="col-md">
                             <label for="" class="fw-bolder text-muted h5">
@@ -62,10 +62,11 @@ export default {
             department: "DEPARTMENT / COURSE",
             timeIn: '--:--',
             timeOut: '--:--',
+            isOnline: false,
         }
     },
     props: {
-        profileData: Object, isOnline: Boolean, // Pass this prop to indicate if the API is online or not
+        profileData: Object,  // Pass this prop to indicate if the API is online or not
     },
 };
 </script>
