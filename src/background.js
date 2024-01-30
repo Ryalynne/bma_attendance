@@ -271,84 +271,72 @@ ipcMain.on("get-attendance", (event, query, data) => {
   });
 });
 // Store Attendance into Database
-ipcMain.on("store-attendance-v2", (event, queries, data) => {
-  const dbPath = path.join(app.getAppPath(), "database.db");
-  const database = new sqlite3.Database(dbPath); // Use the global db variable
-  //event.reply("store-attendance-v2-response", queries.selectEmployee);
-  //Select first the User
-  database.get(queries.selectUser, data.user, (error, selectResponse) => {
-    if (error) {
-      event.reply("select-query-error", {
-        error: error.message,
-      });
+ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
+  try {
+    const dbPath = path.join(app.getAppPath(), "database.db");
+    const database = new sqlite3.Database(dbPath);
+
+    const selectResponse = await getUserData(database, queries.selectUser, data.user);
+    const selectDataAttendance = [selectResponse.id, "%" + data.currentDate + "%"];
+
+    const selectAttendanceResponse = await getAttendanceData(database, queries.selectAttendance, selectDataAttendance);
+
+    const insertValue = [selectResponse.id, data.currentDateTime, null, 0, data.currentDateTime, data.currentDateTime];
+
+    let response;
+
+    if (!selectAttendanceResponse) {
+      response = await runQuery(database, queries.insert, insertValue);
     } else {
-      const selectDataAttendance = [selectResponse.id, "%" + data.currentDate + "%"]; // Set the User Id and Current Data
-      // Get the Exiting Attendance of the User's
-      database.get(queries.selectAttendance, selectDataAttendance, (error2, selectAttendanceResponse) => {
-        if (error2) {
-          console.log(error2)
-          event.reply("select-query-error", {
-            error: error2.message,
-          });
-        } else {
-          // If the Response is Empty you need to insert the data
-          const insertValue = [selectResponse.id, data.currentDateTime, null, 0, data.currentDateTime, data.currentDateTime]; // Set Attendance Details
-          if (!selectAttendanceResponse) {
-            // Insert Attendance
-            database.run(queries.insert, insertValue, (error3, responseInsert) => {
-              console.log(selectResponse.name + ": Saved Attendance")
-              if (error3) {
-                console.log(error3)
-              }
-              console.log(responseInsert);
-            });
-
-          } else {
-            if (selectAttendanceResponse.time_out === null) {
-              const updateValue = [data.currentDateTime, data.currentDateTime, selectAttendanceResponse.id]
-              database.run(queries.update, updateValue, (error3, responseInsert) => {
-                console.log(selectResponse.name + ": Update Attendance")
-                if (error3) {
-                  console.log(error3)
-                }
-                console.log(responseInsert);
-              });
-
-            } else {
-              database.run(queries.insert, insertValue, (error3, responseInsert) => {
-                console.log(selectResponse.name + ": Insert Attendance")
-                if (error3) {
-                  console.log(error3)
-                }
-                console.log(responseInsert);
-              });
-
-
-            }
-          }
-          // then if Exisiting, update the time out index if the index is null
-          // then if Exisiting again and the time out index is not null try to insert again an attendance of the User's
-          event.reply("store-attendance-v2-response", selectAttendanceResponse);
-        }
-      });
-      event.reply("store-attendance-v2-response", selectDataAttendance);
-
+      if (selectAttendanceResponse.time_out === null) {
+        const updateValue = [data.currentDateTime, data.currentDateTime, selectAttendanceResponse.id];
+        response = await runQuery(database, queries.update, updateValue);
+      } else {
+        response = await runQuery(database, queries.insert, insertValue);
+      }
     }
-  });
-  database.close();
+    const selectAttendanceProfile = await getAttendanceData(database,queries.selectProfile,selectDataAttendance)
+    event.reply("RESPONSE_EVENT", { selectAttendanceResponse,selectAttendanceProfile });
+
+  } catch (error) {
+    event.reply("SELECT_QUERY_ERROR_EVENT", { error: error.message });
+  } finally {
+    database.close();
+  }
 });
-// Store Attendance into Database
-ipcMain.on("store-attendance", (event, query, data) => {
-  const dbPath = path.join(app.getAppPath(), "database.db");
-  const database = new sqlite3.Database(dbPath); // Use the global db variable
-  database.run(query, data, (err) => {
-    if (err) {
-      console.log("Error adding employee:", err);
-    } else {
-      console.log("Employee Attendance added successfully.");
-    }
+
+async function getUserData(database, query, userData) {
+  return new Promise((resolve, reject) => {
+    database.get(query, userData, (error, response) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(response);
+      }
+    });
   });
-  /* const success = database.run(query, data);
-  event.reply("store-attendance-response", success);
-  database.close() */
-});
+}
+
+async function getAttendanceData(database, query, attendanceData) {
+  return new Promise((resolve, reject) => {
+    database.get(query, attendanceData, (error, response) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
+async function runQuery(database, query, values) {
+  return new Promise((resolve, reject) => {
+    database.run(query, values, function (error) {
+      if (error) {
+        reject(error);
+      } else {
+        resolve({ id: this.lastID });
+      }
+    });
+  });
+}

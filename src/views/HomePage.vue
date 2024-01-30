@@ -49,7 +49,7 @@ export default {
                 }
             }
         },
-        processScannedBarcode(barcode) {
+        async processScannedBarcode(barcode) {
             // Here you can process the scanned barcode value
             let user = []
             const data = {
@@ -57,11 +57,12 @@ export default {
                 currentDate: this.currentDate(),
                 currentDateTime: this.getDateTime()
             }
-            this.attendanceList.employee  = []
-            user = this.attendanceModel.storeAttendance(data)
+            this.attendanceList.employee = []
+            user = await this.attendanceModel.storeAttendance(data)
             /* this.attendanceModel.storeAttendance(data, (response) => {
                 user = response
             }) */
+            this.profileDetails = user.selectAttendanceProfile
             console.log(user)
             setInterval(() => {
                 this.refreshTable()
