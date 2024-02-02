@@ -8,18 +8,10 @@
 // const fs = require('fs');
 // const isDevelopment = process.env.NODE_ENV !== 'production'
 
-import {
-  app,
-  protocol,
-  BrowserWindow,
-  ipcMain
-} from "electron";
-import {
-  createProtocol
-} from "vue-cli-plugin-electron-builder/lib";
-import installExtension, {
-  VUEJS3_DEVTOOLS
-} from "electron-devtools-installer";
+import { app, protocol, BrowserWindow, ipcMain } from "electron";
+import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
+import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
+import axios from "axios";
 const sqlite3 = require("sqlite3");
 const isDevelopment = process.env.NODE_ENV !== "production";
 //const fs = require("fs");
@@ -27,40 +19,17 @@ const path = require("path");
 // Global  Variable
 let win;
 let db;
-/* // Path to the SQLite database file
 const dbPath = path.join(app.getAppPath(), "database.db");
-//const dbPath = './database.db'; // Replace with the actual path to your database file
-
-const db = new sqlite3.Database(dbPath);
-
-if (!fs.existsSync(dbPath)) {
-  db.exec(
-    `CREATE TABLE IF NOT EXISTS employee_account (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, department_name TEXT, position TEXT, email TEXT, is_actived INTEGER);
-    "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, last_name TEXT, course TEXT, is_actived INTEGER);
-    CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    `,
-    function (err) {
-      if (err) {
-        console.error("Error creating tables and inserting data:", err.message);
-      } else {
-        console.log("Tables created and data inserted successfully.");
-      }
-      // Close the database connection after completing operations
-      db.close();
-      const db = new sqlite3.Database(dbPath);
-    }
-  );
-} */
-
 // Scheme must be registered before the app is ready
-protocol.registerSchemesAsPrivileged([{
-  scheme: "app",
-  privileges: {
-    secure: true,
-    standard: true,
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "app",
+    privileges: {
+      secure: true,
+      standard: true,
+    },
   },
-}, ]);
+]);
 
 async function createWindow() {
   // Create the browser window.
@@ -90,7 +59,7 @@ async function createWindow() {
 function createDatabase() {
   const appPath = app.getAppPath();
   console.log(appPath);
-  const dbPath = path.join(appPath, "database.db");
+  //dbPath = path.join(appPath, "database.db");
 
   // File exists, create the database connection
   db = new sqlite3.Database(dbPath); // Use the global db variable
@@ -104,10 +73,10 @@ function createDatabase() {
       "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, last_name TEXT, course TEXT, is_actived INTEGER)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     );
 
     // Pass the SQLite database instance to the renderer process
@@ -165,7 +134,6 @@ if (isDevelopment) {
 }
 // Store Employee into Database
 ipcMain.on("add-employee", (event, data, query) => {
-  const dbPath = path.join(app.getAppPath(), "database.db");
   const database = new sqlite3.Database(dbPath);
   const success = database.run(query, data);
   event.reply("add-employee-response", success);
@@ -188,8 +156,6 @@ ipcMain.on("get-employee", (event, data, query) => {
 });
 // Select Employee Details
 ipcMain.on("select-employee", (event, data, query) => {
-  const dbPath = path.join(app.getAppPath(), "database.db");
-  const database = new sqlite3.Database(dbPath);
   database.get(query, data, (err, result) => {
     if (err) {
       console.log("Error in get-employee query:", err.message);
@@ -202,12 +168,11 @@ ipcMain.on("select-employee", (event, data, query) => {
       event.reply("select-employee-response", result);
     }
   });
-  database.close()
+  database.close();
 });
 ipcMain.on("insert-employee", (event, data, selectQuery, insertQuery) => {
-  const dbPath = path.join(app.getAppPath(), "database.db");
-  const database = new sqlite3.Database(dbPath);
   // Execute the select Employee Query
+  const database = new sqlite3.Database(dbPath);
   database.get(selectQuery, data.email, (err, result) => {
     if (err) {
       console.log("Error in get-employee query:", err.message);
@@ -215,22 +180,22 @@ ipcMain.on("insert-employee", (event, data, selectQuery, insertQuery) => {
         error: err.message,
       });
     } else {
-      console.log(data.email + ": " + result)
+      console.log(data.email + ": " + result);
       if (!result) {
-        const value = [data.name, 'staff', data.department, data.email, 1]
+        const value = [data.name, "staff", data.department, data.email, 1];
         // Save Employee
         database.run(insertQuery, value, (error2, result2) => {
           if (error2) {
-            console.log('Insert Employee Error: ' + error2.message)
+            console.log("Insert Employee Error: " + error2.message);
           } else {
-            console.log("Save Employee")
+            console.log("Save Employee");
           }
         });
       }
       event.reply("insert-employee-response", result);
     }
   });
-})
+});
 // Select Table
 ipcMain.on("select-table", (event, query) => {
   db.all(query, (error, response) => {
@@ -244,7 +209,6 @@ ipcMain.on("select-table", (event, query) => {
 });
 // Select Table Where
 ipcMain.on("select-table-where", (event, query, data) => {
-  const dbPath = path.join(app.getAppPath(), "database.db");
   const database = new sqlite3.Database(dbPath);
   database.all(query, data, (error, response) => {
     if (error) {
@@ -273,15 +237,31 @@ ipcMain.on("get-attendance", (event, query, data) => {
 // Store Attendance into Database
 ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
   try {
-    const dbPath = path.join(app.getAppPath(), "database.db");
     const database = new sqlite3.Database(dbPath);
+    const selectResponse = await getUserData(
+      database,
+      queries.selectUser,
+      data.user
+    );
+    const selectDataAttendance = [
+      selectResponse.id,
+      "%" + data.currentDate + "%",
+    ];
 
-    const selectResponse = await getUserData(database, queries.selectUser, data.user);
-    const selectDataAttendance = [selectResponse.id, "%" + data.currentDate + "%"];
+    const selectAttendanceResponse = await getAttendanceData(
+      database,
+      queries.selectAttendance,
+      selectDataAttendance
+    );
 
-    const selectAttendanceResponse = await getAttendanceData(database, queries.selectAttendance, selectDataAttendance);
-
-    const insertValue = [selectResponse.id, data.currentDateTime, null, 0, data.currentDateTime, data.currentDateTime];
+    const insertValue = [
+      selectResponse.id,
+      data.currentDateTime,
+      null,
+      0,
+      data.currentDateTime,
+      data.currentDateTime,
+    ];
 
     let response;
 
@@ -289,15 +269,25 @@ ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
       response = await runQuery(database, queries.insert, insertValue);
     } else {
       if (selectAttendanceResponse.time_out === null) {
-        const updateValue = [data.currentDateTime, data.currentDateTime, selectAttendanceResponse.id];
+        const updateValue = [
+          data.currentDateTime,
+          data.currentDateTime,
+          selectAttendanceResponse.id,
+        ];
         response = await runQuery(database, queries.update, updateValue);
       } else {
         response = await runQuery(database, queries.insert, insertValue);
       }
     }
-    const selectAttendanceProfile = await getAttendanceData(database,queries.selectProfile,selectDataAttendance)
-    event.reply("RESPONSE_EVENT", { selectAttendanceResponse,selectAttendanceProfile });
-
+    const selectAttendanceProfile = await getAttendanceData(
+      database,
+      queries.selectProfile,
+      selectDataAttendance
+    );
+    event.reply("RESPONSE_EVENT", {
+      selectAttendanceResponse,
+      selectAttendanceProfile,
+    });
   } catch (error) {
     event.reply("SELECT_QUERY_ERROR_EVENT", { error: error.message });
   } finally {
@@ -340,3 +330,22 @@ async function runQuery(database, query, values) {
     });
   });
 }
+// STORE ATTENDANCE INTO API
+ipcMain.on("STORE_ATTENDANCE_API", async (event, queries, apiUrl) => {
+  const database = new sqlite3.Database(dbPath);
+  // GET ATTENDANCE LIST NOT SAVE TO THE SERVER
+  database.all(queries, (error, response) => {
+    if (error) {
+      console.log(error);
+    } else {
+      response.forEach(async (element) => {
+        // Make a POST request using Axios
+        const response = await axios.post(apiUrl, element);
+        console.log("Response:", response.data);
+        console.log(element);
+      });
+    }
+    //axios
+  });
+  database.close();
+});

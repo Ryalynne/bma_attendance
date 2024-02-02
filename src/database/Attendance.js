@@ -9,6 +9,7 @@ class AttendanceModel {
     this.studentID = "student_id";
     this.timeIn = "time_in";
     this.timeOut = "time_out";
+    this.responseId = "response_id";
     this.sync = "is_sync";
     this.created = "created_at";
     this.updated = "updated_at";
@@ -73,6 +74,14 @@ class AttendanceModel {
         reject(error);
       });
     });
+  }
+  apiStoreAttendance() {
+    //const selectQuery = `SELECT * FROM ${this.employeeTable} WHERE ${this.sync} = 0`;
+    const employee = new EmployeeModel();
+    const selectQuery = `SELECT * FROM ${this.employeeTable}
+    INNER JOIN ${employee.tableName} ON ${employee.tableName}.id = ${this.employeeTable}.${this.empID}
+    WHERE ${this.sync} = 0;`;
+    ipcRenderer.send("STORE_ATTENDANCE_API", selectQuery);
   }
 }
 

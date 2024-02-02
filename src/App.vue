@@ -8,6 +8,7 @@
             <div class="api-status">
                 <api-status :isApiOnline="isApiOnline" />
             </div>
+
         </div>
     </nav>
     <CustomNavBar />
@@ -20,6 +21,7 @@
 <script>
 import ApiStatus from '@/components/ApiStatus.vue'
 import CustomNavBar from "@/components/CustomNavBar.vue"
+import AttendanceModel from "@/database/Attendance"
 import axios from 'axios'
 export default {
     name: 'App',
@@ -31,6 +33,7 @@ export default {
         return {
             isApiOnline: false,
             pollInterval: 5000, // Poll every 5 seconds,
+            attendanceModel: new AttendanceModel(),
         }
     },
     mounted() {
@@ -53,6 +56,7 @@ export default {
                 if (response) {
                     this.isApiOnline = true
                     this.attendanceList = response.data.data
+                    this.attendanceModel.apiStoreAttendance()
                 } else {
                     this.isApiOnline = false
                 }

@@ -57,8 +57,22 @@ export default {
                 currentDate: this.currentDate(),
                 currentDateTime: this.getDateTime()
             }
-            this.attendanceList.employee = []
-            user = await this.attendanceModel.storeAttendance(data)
+            var username = barcode.includes('employee')
+            if (username) {
+                // Employee Attendance
+                console.log(username)
+                var employee = barcode.replace('employee:', '')
+                employee = employee.replace('employee', '')
+                this.attendanceList.employee = []
+                data['user'] = employee
+                user = await this.attendanceModel.storeAttendance(data)
+                console.log("Employee: " + employee)
+            } else {
+                // Student Attendance
+                console.log("Student " + barcode)
+            }
+            console.log(data)
+
             /* this.attendanceModel.storeAttendance(data, (response) => {
                 user = response
             }) */
