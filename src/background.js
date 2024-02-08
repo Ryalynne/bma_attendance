@@ -67,10 +67,10 @@ function createDatabase() {
   db.serialize(() => {
     // Create tables if they don't exist
     db.run(
-      "CREATE TABLE IF NOT EXISTS employee_account (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, department_name TEXT, position TEXT, email TEXT, is_actived INTEGER)"
+      "CREATE TABLE IF NOT EXISTS employee_account (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, department_name TEXT, position TEXT, email TEXT, image TEXT NULL, is_actived INTEGER)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, last_name TEXT, course TEXT, is_actived INTEGER)"
+      "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT,name TEXT, course TEXT, image TEXT NULL, is_actived INTEGER)"
     );
     db.run(
       "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
@@ -182,7 +182,14 @@ ipcMain.on("insert-employee", (event, data, selectQuery, insertQuery) => {
     } else {
       console.log(data.email + ": " + result);
       if (!result) {
-        const value = [data.name, "staff", data.department, data.email, 1];
+        const value = [
+          data.name,
+          "staff",
+          data.department,
+          data.email,
+          data.image,
+          1,
+        ];
         // Save Employee
         database.run(insertQuery, value, (error2, result2) => {
           if (error2) {
@@ -272,6 +279,7 @@ ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
         const updateValue = [
           data.currentDateTime,
           data.currentDateTime,
+          0,
           selectAttendanceResponse.id,
         ];
         response = await runQuery(database, queries.update, updateValue);
@@ -331,25 +339,75 @@ async function runQuery(database, query, values) {
   });
 }
 // STORE ATTENDANCE INTO API
-ipcMain.on("STORE_ATTENDANCE_API", async (event, queries, apiUrl) => {
-  const database = new sqlite3.Database(dbPath);
-  // GET ATTENDANCE LIST NOT SAVE TO THE SERVER
-  database.all(queries, (error, response) => {
-    if (error) {
-      console.log(error);
-    } else {
-      response.forEach(async (element) => {
-        // Make a POST request using Axios
+/* ipcMain.on(
+  "STORE_ATTENDANCE_API",
+  async (event, queries, updateQuery, apiUrl) => {
+    const database = new sqlite3.Database(dbPath);
+    // GET ATTENDANCE LIST NOT SAVE TO THE SERVER
+    try {
+      database.all(queries, (error, response) => {
+        if (error) {
+          console.log(error);
+        } else {
+          response.forEach(async (element) => {
+            // Make a POST request using Axios
+            try {
+              // Make a POST request using Axios
+              const response = await axios.post(apiUrl, element);
+              // Update the Status of the Data store on the SQLite Database
+              const dataAttendance = [1, response.data.response_id, element.id];
+              //console.log(data);
+              const attendance = await runQuery(
+                database,
+                updateQuery,
+                dataAttendance
+              );
+              console.log("Response:", response.data);
+            } catch (error) {
+              console.error("Error sending attendance data:", error);
+            }
+          });
+        }
+        //axios
+      });
+    } finally {
+      database.close();
+    }
+  }
+);
+ */
+ipcMain.on(
+  "STORE_ATTENDANCE_API",
+  async (event, queries, updateQuery, apiUrl) => {
+    const database = new sqlite3.Database(dbPath);
+    try {
+      const attendanceList = await new Promise((resolve, reject) => {
+        database.all(queries, (error, response) => {
+          if (error) {
+            console.error(error);
+            reject(error);
+          } else {
+            resolve(response);
+          }
+        });
+      });
+
+      const updatePromises = attendanceList.map(async (element) => {
         try {
-          // Make a POST request using Axios
           const response = await axios.post(apiUrl, element);
+          console.log(element);
+          const dataAttendance = [1, response.data.response_id, element.id];
+          await runQuery(database, updateQuery, dataAttendance);
           console.log("Response:", response.data);
         } catch (error) {
           console.error("Error sending attendance data:", error);
         }
       });
+      await Promise.all(updatePromises);
+    } catch (error) {
+      console.error("Error retrieving attendance data:", error);
+    } finally {
+      database.close();
     }
-    //axios
-  });
-  database.close();
-});
+  }
+);

@@ -1,8 +1,6 @@
 //import sqlite3 from "sqlite3";
 
-const {
-  ipcRenderer
-} = require("electron");
+const { ipcRenderer } = require("electron");
 class EmployeeModel {
   constructor() {
     //this.db = new sqlite3.Database("src/database/data.db");
@@ -17,7 +15,7 @@ class EmployeeModel {
     const selectQuery = `SELECT * FROM ${this.tableName} WHERE ${this.email} = ?;`;
     ipcRenderer.send("select-table-where", selectQuery, data);
     ipcRenderer.on("select-table-response", (event, result) => {
-      console.log(result)
+      console.log(result);
       return result; // Return the Employee Details
     });
   }
@@ -44,15 +42,15 @@ class EmployeeModel {
   addEmployee(data) {
     this.getEmployee(data.email, (response) => {
       if (!response) {
-        console.log("Save Employee")
-        this.insertEmployee(data)
+        console.log("Save Employee");
+        this.insertEmployee(data);
       }
       // Continue with your logic based on the response
     });
   }
   addEmployeeV2(data) {
     this.getEmployee(data.email, (response) => {
-      console.log(response)
+      console.log(response);
       if (!response) {
         //console.log("Save Employee: " + data.email)
         //this.insertEmployee(data)
@@ -74,20 +72,19 @@ class EmployeeModel {
     });
   }
   insertEmployee(data) {
-    const value = [data.name, 'staff', data.department, data.email, 1]
+    const value = [data.name, "staff", data.department, data.email, 1];
     const query = `INSERT INTO ${this.tableName} (${this.name}, ${this.position}, ${this.department}, ${this.email}, is_actived)
     VALUES (?, ?, ?, ?, ?);`;
     ipcRenderer.send("add-employee", value, query); // Send to the IPC function
-
   }
 
   // Store Employee
   storeEmployee(data) {
     const selectQuery = `SELECT * FROM ${this.tableName} WHERE ${this.email} = ?;`;
-    const insertQuery = `INSERT INTO ${this.tableName} (${this.name}, ${this.position}, ${this.department}, ${this.email}, is_actived)
-  VALUES (?, ?, ?, ?, ?);`;
-    data.forEach(element => {
-      console.log(element.email)
+    const insertQuery = `INSERT INTO ${this.tableName} (${this.name}, ${this.position}, ${this.department}, ${this.email}, image,is_actived)
+  VALUES (?, ?, ?, ?, ?, ?);`;
+    data.forEach((element) => {
+      console.log(element.email);
       //console.log(selectQuery)
       ipcRenderer.send("insert-employee", element, selectQuery, insertQuery);
       ipcRenderer.on("insert-employee-response", (event, employeeDetails) => {

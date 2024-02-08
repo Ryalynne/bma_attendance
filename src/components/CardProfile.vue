@@ -2,8 +2,8 @@
     <div class="card mb-3 border border-white shadow">
         <div class="row g-0">
             <div class="col-md-3">
-                <img src="@/assets/avatar.png" class="img-fluid rounded" alt="image">
-                    <!--  <div class="" v-if="isOnline">
+                <img :src="profileData ? profileData.image : `@/assets/avatar.png`" class="img-fluid rounded" alt="image">
+                <!--  <div class="" v-if="isOnline">
                     <img v-if="profileData" :src="profileData.image" class="img-fluid rounded" alt="image">
                     <img v-else src="@/assets/avatar.png" class="img-fluid rounded" alt="image">
                 </div>
