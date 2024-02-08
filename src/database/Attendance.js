@@ -39,7 +39,7 @@ class AttendanceModel {
     const updateQuery = `UPDATE ${this.employeeTable} SET ${this.timeOut} = ? ,${this.updated} = ? WHERE id = ?`;
     const selectAttendanceProfile = `SELECT * FROM ${this.employeeTable}
        INNER JOIN ${employee.tableName} ON ${employee.tableName}.id = ${this.employeeTable}.${this.empID}
-       WHERE ${this.employeeTable}.${this.empID} = ? AND ${this.employeeTable}.${this.created} LIKE ? 
+       WHERE ${this.employeeTable}.${this.empID} = ? AND ${this.employeeTable}.${this.created} LIKE ?
        ORDER BY ${this.employeeTable}.${this.updated} DESC;`;
     const queries = {
       selectUser: selectEmployeeQuery,
@@ -81,7 +81,7 @@ class AttendanceModel {
     const selectQuery = `SELECT * FROM ${this.employeeTable}
     INNER JOIN ${employee.tableName} ON ${employee.tableName}.id = ${this.employeeTable}.${this.empID}
     WHERE ${this.sync} = 0;`;
-    ipcRenderer.send("STORE_ATTENDANCE_API", selectQuery);
+    ipcRenderer.send("STORE_ATTENDANCE_API", selectQuery,'http://127.0.0.1:70/api/employee-attendance');
   }
 }
 

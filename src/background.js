@@ -340,9 +340,13 @@ ipcMain.on("STORE_ATTENDANCE_API", async (event, queries, apiUrl) => {
     } else {
       response.forEach(async (element) => {
         // Make a POST request using Axios
-        const response = await axios.post(apiUrl, element);
-        console.log("Response:", response.data);
-        console.log(element);
+        try {
+          // Make a POST request using Axios
+          const response = await axios.post(apiUrl, element);
+          console.log("Response:", response.data);
+        } catch (error) {
+          console.error("Error sending attendance data:", error);
+        }
       });
     }
     //axios
