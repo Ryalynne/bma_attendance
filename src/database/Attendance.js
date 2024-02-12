@@ -1,6 +1,9 @@
 import EmployeeModel from "./Employee";
+import StudentsModel from "./Students";
 
-const { ipcRenderer } = require("electron");
+const {
+  ipcRenderer
+} = require("electron");
 class AttendanceModel {
   constructor() {
     this.employeeTable = "employee_attendance";
@@ -31,24 +34,26 @@ class AttendanceModel {
       // Handle the error
     });
   }
-  async storeAttendance(dataArray) {
-    const employee = new EmployeeModel();
-    const selectEmployeeQuery = `SELECT * FROM ${employee.tableName} WHERE ${employee.email} = ?;`;
-    const selectQuery = `SELECT * FROM ${this.employeeTable} WHERE ${this.empID} = ? AND ${this.created} LIKE ? ORDER BY id DESC`;
-    const insertQuery = `INSERT INTO ${this.employeeTable} (${this.empID}, ${this.timeIn}, ${this.timeOut}, ${this.sync},${this.created},${this.updated}) VALUES (?, ?, ?, ?,?,?);`;
-    const updateQuery = `UPDATE ${this.employeeTable} SET ${this.timeOut} = ? ,${this.updated} = ?, ${this.sync} = ? WHERE id = ?`;
-    const selectAttendanceProfile = `SELECT * FROM ${this.employeeTable}
-       INNER JOIN ${employee.tableName} ON ${employee.tableName}.id = ${this.employeeTable}.${this.empID}
-       WHERE ${this.employeeTable}.${this.empID} = ? AND ${this.employeeTable}.${this.created} LIKE ?
-       ORDER BY ${this.employeeTable}.${this.updated} DESC;`;
-    const queries = {
-      selectUser: selectEmployeeQuery,
-      selectAttendance: selectQuery,
-      selectProfile: selectAttendanceProfile,
-      insert: insertQuery,
-      update: updateQuery,
-    };
 
+  async fetchUserAttendance(currentData, userType) {
+    const studentModel = new StudentsModel()
+    const employeeModel = new EmployeeModel()
+    const mainTable = userType === 'employees' ? this.employeeTable : this.studentTable
+    const secondTable = userType === 'employees' ? employeeModel.tableName : studentModel.tableName
+    const column = userType === 'employees' ? this.empID : this.studentID
+    // Query for Get All Attendance
+    const selectQuery = `SELECT * FROM ${mainTable}
+       INNER JOIN ${secondTable} ON ${secondTable}.id = ${mainTable}.${column}
+       WHERE ${mainTable}.${this.created} LIKE ?
+       ORDER BY ${mainTable}.${this.updated} DESC;`;
+    try {
+      const response = await this.sendFetchAttendance(selectQuery, currentData)
+      return response
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  async storeAttendancev2(dataArray, queries) {
     try {
       const response = await this.sendStoreAttendanceRequest(
         queries,
@@ -61,7 +66,6 @@ class AttendanceModel {
       // Handle the error
     }
   }
-
   sendStoreAttendanceRequest(queries, dataArray) {
     return new Promise((resolve, reject) => {
       ipcRenderer.send("STORE_ATTENDANCE", queries, dataArray);
@@ -74,6 +78,19 @@ class AttendanceModel {
         reject(error);
       });
     });
+  }
+  sendFetchAttendance(query, value) {
+    return new Promise((resolve, reject) => {
+      ipcRenderer.send("FETCH_ATTENDANCE", query, value);
+
+      ipcRenderer.once("FETCH_ATTENDANCE_RESPONSE", (event, response) => {
+        resolve(response);
+      });
+
+      ipcRenderer.once("FETCH_ATTENDANCE_ERROR", (event, error) => {
+        reject(error);
+      });
+    })
   }
   apiStoreAttendance() {
     const employee = new EmployeeModel();

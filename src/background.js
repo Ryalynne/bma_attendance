@@ -8,9 +8,18 @@
 // const fs = require('fs');
 // const isDevelopment = process.env.NODE_ENV !== 'production'
 
-import { app, protocol, BrowserWindow, ipcMain } from "electron";
-import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
+import {
+  app,
+  protocol,
+  BrowserWindow,
+  ipcMain
+} from "electron";
+import {
+  createProtocol
+} from "vue-cli-plugin-electron-builder/lib";
+import installExtension, {
+  VUEJS3_DEVTOOLS
+} from "electron-devtools-installer";
 import axios from "axios";
 const sqlite3 = require("sqlite3");
 const isDevelopment = process.env.NODE_ENV !== "production";
@@ -21,15 +30,13 @@ let win;
 let db;
 const dbPath = path.join(app.getAppPath(), "database.db");
 // Scheme must be registered before the app is ready
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "app",
-    privileges: {
-      secure: true,
-      standard: true,
-    },
+protocol.registerSchemesAsPrivileged([{
+  scheme: "app",
+  privileges: {
+    secure: true,
+    standard: true,
   },
-]);
+}, ]);
 
 async function createWindow() {
   // Create the browser window.
@@ -70,7 +77,7 @@ function createDatabase() {
       "CREATE TABLE IF NOT EXISTS employee_account (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, department_name TEXT, position TEXT, email TEXT, image TEXT NULL, is_actived INTEGER)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT,name TEXT, course TEXT, image TEXT NULL, is_actived INTEGER)"
+      "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT,name TEXT, course TEXT, image TEXT NULL, year_level TEXT NULL, is_actived INTEGER)"
     );
     db.run(
       "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
@@ -241,6 +248,68 @@ ipcMain.on("get-attendance", (event, query, data) => {
     }
   });
 });
+// GET ATTENDANCE
+ipcMain.on("FETCH_ATTENDANCE", async (event, query, data) => {
+  try {
+    const database = new sqlite3.Database(dbPath);
+    //const fetchAttendance = await fetchQuery(database, query, data);
+    const fetchAttendance = await new Promise((resolve, reject) => {
+      database.all(query, data, (error, response) => {
+        if (error) {
+          console.log(error);
+          reject(error);
+        } else {
+          resolve(response);
+        }
+      });
+    });
+
+    console.log(fetchAttendance)
+    event.reply("FETCH_ATTENDANCE_RESPONSE", fetchAttendance);
+  } catch (error) {
+    event.reply("FETCH_ATTENDANCE_ERROR", {
+      error: error.message
+    });
+  } finally {
+    database.close();
+  };
+
+})
+// STORE STUDENT INFORMATION
+ipcMain.on("STORE_USER_INFORMATION", (event, dataList, insertQuery, selectQuery) => {
+  const database = new sqlite3.Database(dbPath);
+  dataList.forEach(element => {
+    //console.log(element)
+    // CHECK IF THE USER IS EXISITING TO THE DATABASE
+    database.get(selectQuery, element.username, (selectError, selectResult) => {
+      if (selectError) {
+        console.log("Error in get-employee query:", selectError.message);
+      } else {
+        if (!selectResult) {
+          const year_level = element.course ? element.course.year_level : 'n.a'
+          const course = element.course ? element.course.course.course_name : 'n.a'
+          const value = [
+            element.username,
+            element.name,
+            course,
+            element.image,
+            year_level,
+            1,
+          ];
+          //console.log(value)
+          // Save Employee
+          database.run(insertQuery, value, (error2, result2) => {
+            if (error2) {
+              console.log("Insert Employee Error: " + error2.message);
+            } else {
+              console.log("Save Employee");
+            }
+          });
+        }
+      }
+    })
+  });
+});
 // Store Attendance into Database
 ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
   try {
@@ -297,7 +366,9 @@ ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
       selectAttendanceProfile,
     });
   } catch (error) {
-    event.reply("SELECT_QUERY_ERROR_EVENT", { error: error.message });
+    event.reply("SELECT_QUERY_ERROR_EVENT", {
+      error: error.message
+    });
   } finally {
     database.close();
   }
@@ -333,49 +404,28 @@ async function runQuery(database, query, values) {
       if (error) {
         reject(error);
       } else {
-        resolve({ id: this.lastID });
+        resolve({
+          id: this.lastID
+        });
       }
     });
   });
 }
+
+async function fetchQuery(database, queries, data) {
+  return await new Promise((resolve, reject) => {
+    database.all(queries, data, (error, response) => {
+      if (error) {
+        console.error(error);
+        reject(error);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+
+}
 // STORE ATTENDANCE INTO API
-/* ipcMain.on(
-  "STORE_ATTENDANCE_API",
-  async (event, queries, updateQuery, apiUrl) => {
-    const database = new sqlite3.Database(dbPath);
-    // GET ATTENDANCE LIST NOT SAVE TO THE SERVER
-    try {
-      database.all(queries, (error, response) => {
-        if (error) {
-          console.log(error);
-        } else {
-          response.forEach(async (element) => {
-            // Make a POST request using Axios
-            try {
-              // Make a POST request using Axios
-              const response = await axios.post(apiUrl, element);
-              // Update the Status of the Data store on the SQLite Database
-              const dataAttendance = [1, response.data.response_id, element.id];
-              //console.log(data);
-              const attendance = await runQuery(
-                database,
-                updateQuery,
-                dataAttendance
-              );
-              console.log("Response:", response.data);
-            } catch (error) {
-              console.error("Error sending attendance data:", error);
-            }
-          });
-        }
-        //axios
-      });
-    } finally {
-      database.close();
-    }
-  }
-);
- */
 ipcMain.on(
   "STORE_ATTENDANCE_API",
   async (event, queries, updateQuery, apiUrl) => {

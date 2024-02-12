@@ -19,6 +19,7 @@ import CardProfile from '@/components/CardProfile.vue'
 import AttendanceList from '@/components/AttendanceList.vue'
 import EmployeeModel from '@/database/Employee'
 import AttendanceModel from "@/database/Attendance"
+import StudentsModel from '@/database/Students'
 export default {
     name: 'App',
     components: {
@@ -29,9 +30,10 @@ export default {
     data() {
         return {
             profileDetails: null,
-            attendanceList: { 'employee': [], 'student': [] },
+            attendanceList: { 'employee': [], 'students': [] },
             attendanceModel: new AttendanceModel(),
-            employeeModel: new EmployeeModel()
+            employeeModel: new EmployeeModel(),
+            studentModel: new StudentsModel()
         }
     },
     mounted() {
@@ -65,11 +67,12 @@ export default {
                 employee = employee.replace('employee', '')
                 this.attendanceList.employee = []
                 data['user'] = employee
-                user = await this.attendanceModel.storeAttendance(data)
+                user = await this.employeeModel.storeAttendance(data)
                 console.log("Employee: " + employee)
             } else {
                 // Student Attendance
                 console.log("Student " + barcode)
+                user = await this.studentModel.storeAttendance(data)
             }
             console.log(data)
 
@@ -78,10 +81,7 @@ export default {
             }) */
             this.profileDetails = user.selectAttendanceProfile
             console.log(user)
-            setInterval(() => {
-                this.refreshTable()
-            }, 100);
-
+            this.refreshTable()
         },
         getDateTime() {
             const currentDateTime = new Date();
@@ -109,6 +109,9 @@ export default {
             this.attendanceModel.fetchEmployeeAttendanceList(this.currentDate(), (response) => {
                 this.attendanceList.employee = response
             })
+            const studentAttendance = this.attendanceModel.fetchUserAttendance(this.currentDate(), "students")
+            this.attendanceList.student = studentAttendance
+            console.log(studentAttendance)
         }
     },
 }

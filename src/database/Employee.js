@@ -1,6 +1,10 @@
 //import sqlite3 from "sqlite3";
 
-const { ipcRenderer } = require("electron");
+import AttendanceModel from "./Attendance";
+
+const {
+  ipcRenderer
+} = require("electron");
 class EmployeeModel {
   constructor() {
     //this.db = new sqlite3.Database("src/database/data.db");
@@ -96,6 +100,25 @@ class EmployeeModel {
         // Handle the error
       });
     });
+  }
+  // Store Employee Attendance
+  storeAttendance(dataArray) {
+    const attendanceModel = new AttendanceModel();
+    const selectUserQuery = `SELECT * FROM ${this.tableName} WHERE ${this.email} = ?;`;
+    const selectQuery = `SELECT * FROM ${attendanceModel.employeeTable} WHERE ${attendanceModel.empID} = ? AND ${attendanceModel.created} LIKE ? ORDER BY id DESC`;
+    const insertQuery = `INSERT INTO ${attendanceModel.employeeTable} (${attendanceModel.empID}, ${attendanceModel.timeIn}, ${attendanceModel.timeOut}, ${attendanceModel.empID},${attendanceModel.created},${attendanceModel.empID}) VALUES (?, ?, ?, ?,?,?);`;
+    const updateQuery = `UPDATE ${attendanceModel.employeeTable} SET ${attendanceModel.timeOut} = ? ,${attendanceModel.empID} = ?, ${attendanceModel.empID} = ? WHERE id = ?`;
+    const selectAttendanceProfile = `SELECT * FROM ${attendanceModel.employeeTable}  INNER JOIN ${this.tableName} ON ${this.tableName}.id = ${attendanceModel.employeeTable}.${attendanceModel.empID}
+       WHERE ${attendanceModel.employeeTable}.${attendanceModel.empID} = ? AND ${attendanceModel.employeeTable}.${attendanceModel.created} LIKE ?
+       ORDER BY ${attendanceModel.employeeTable}.${attendanceModel.updated} DESC;`;
+    const queries = {
+      selectUser: selectUserQuery,
+      selectAttendance: selectQuery,
+      selectProfile: selectAttendanceProfile,
+      insert: insertQuery,
+      update: updateQuery,
+    };
+    return attendanceModel.storeAttendancev2(dataArray, queries)
   }
 }
 
