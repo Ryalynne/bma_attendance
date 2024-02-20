@@ -110,11 +110,9 @@ export default {
                 console.log("User List Error: " + error)
             }
         },
-        userTables() {
-            this.employeeModel.fetchAllEmployeeV2((response) => {
-                console.log(response)
-                this.employeeList = response
-            })
+        async userTables() {
+            const employee = await this.employeeModel.viewEmployees()
+            this.employeeList = employee
             this.studentModel.fetchAllStudent((response) => {
                 this.studentList = response
             })

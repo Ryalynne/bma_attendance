@@ -5,7 +5,6 @@ const {
 } = require("electron");
 class EmployeeModel {
   constructor() {
-    //this.db = new sqlite3.Database("src/database/data.db");
     this.tableName = "employee_account";
     this.name = "name";
     this.position = "position";
@@ -49,6 +48,29 @@ class EmployeeModel {
       update: updateQuery,
     };
     return attendanceModel.storeAttendancev2(dataArray, queries)
+  }
+  // View Employee Details
+  async viewEmployees() {
+    const selectQuery = `SELECT * FROM ${this.tableName} ;`;
+    try {
+      const response = await this.sendFetchUser(selectQuery)
+      return response
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  sendFetchUser(query) {
+    return new Promise((resolve, reject) => {
+      ipcRenderer.send("FETCH_USER_INFO", query);
+
+      ipcRenderer.once("FETCH_USER_INFO_RESPONSE", (event, response) => {
+        resolve(response);
+      });
+
+      ipcRenderer.once("FETCH_USER_INFO_ERROR", (event, error) => {
+        reject(error);
+      });
+    })
   }
 }
 

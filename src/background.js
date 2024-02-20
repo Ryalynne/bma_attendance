@@ -139,77 +139,6 @@ if (isDevelopment) {
     });
   }
 }
-// Store Employee into Database
-ipcMain.on("add-employee", (event, data, query) => {
-  const database = new sqlite3.Database(dbPath);
-  const success = database.run(query, data);
-  event.reply("add-employee-response", success);
-  database.close();
-});
-// Get Employee Details
-ipcMain.on("get-employee", (event, data, query) => {
-  db.get(query, data, (err, result) => {
-    if (err) {
-      console.log("Error in get-employee query:", err.message);
-      event.reply("get-employee-response", {
-        error: err.message,
-      });
-    } else {
-      // Send the employee details (or null if not found)
-      //console.log(result)
-      event.reply("get-employee-response", result);
-    }
-  });
-});
-// Select Employee Details
-ipcMain.on("select-employee", (event, data, query) => {
-  database.get(query, data, (err, result) => {
-    if (err) {
-      console.log("Error in get-employee query:", err.message);
-      event.reply("select-employee-response-error", {
-        error: err.message,
-      });
-    } else {
-      // Send the employee details (or null if not found)
-      //console.log(result)
-      event.reply("select-employee-response", result);
-    }
-  });
-  database.close();
-});
-ipcMain.on("insert-employee", (event, data, selectQuery, insertQuery) => {
-  // Execute the select Employee Query
-  const database = new sqlite3.Database(dbPath);
-  database.get(selectQuery, data.email, (err, result) => {
-    if (err) {
-      console.log("Error in get-employee query:", err.message);
-      event.reply("insert-employee-response-error", {
-        error: err.message,
-      });
-    } else {
-      console.log(data.email + ": " + result);
-      if (!result) {
-        const value = [
-          data.name,
-          "staff",
-          data.department,
-          data.email,
-          data.image,
-          1,
-        ];
-        // Save Employee
-        database.run(insertQuery, value, (error2, result2) => {
-          if (error2) {
-            console.log("Insert Employee Error: " + error2.message);
-          } else {
-            console.log("Save Employee");
-          }
-        });
-      }
-      event.reply("insert-employee-response", result);
-    }
-  });
-});
 // Select Table
 ipcMain.on("select-table", (event, query) => {
   db.all(query, (error, response) => {
@@ -232,28 +161,35 @@ ipcMain.on("select-table-where", (event, query, data) => {
   });
   database.close();
 });
-
-// Attendance Function
-ipcMain.on("get-attendance", (event, query, data) => {
-  db.get(query, data, (err, result) => {
-    if (err) {
-      console.log("Error in get-attendance query:", err.message);
-      event.reply("get-attendance-error", {
-        error: err.message,
+// GET USER'S INFORMATION
+ipcMain.on("FETCH_USER_INFO", async (event, query) => {
+  try {
+    const database = new sqlite3.Database(dbPath);
+    const fetchAttendance = await new Promise((resolve, reject) => {
+      database.all(query, (error, response) => {
+        if (error) {
+          console.log(error);
+          reject(error);
+        } else {
+          resolve(response);
+        }
       });
-    } else {
-      // Send the attendance details (or null if not found)
-      //console.log(result)
-      event.reply("get-attendance-response", result);
-    }
-  });
-});
+    });
+    event.reply("FETCH_USER_INFO_RESPONSE", fetchAttendance);
+  } catch (error) {
+    event.reply("FETCH_USER_INFO_ERROR", {
+      error: error.message
+    });
+  } finally {
+    //database.close();
+  };
+
+})
 // GET ATTENDANCE
 ipcMain.on("FETCH_ATTENDANCE", async (event, query, data) => {
   try {
     const database = new sqlite3.Database(dbPath);
     //const fetchAttendance = await fetchQuery(database, query, data);
-    console.log(query)
     const fetchAttendance = await new Promise((resolve, reject) => {
       database.all(query, data, (error, response) => {
         if (error) {
@@ -309,6 +245,7 @@ ipcMain.on("STORE_USER_INFORMATION", (event, dataList, insertQuery, selectQuery)
     })
   });
 });
+// STORE EMPLOYEE INFORMATION
 ipcMain.on("STORE_EMPLOYEE_INFORMATION", (event, dataList, insertQuery, selectQuery) => {
   const database = new sqlite3.Database(dbPath);
   dataList.forEach(element => {

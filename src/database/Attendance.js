@@ -17,24 +17,6 @@ class AttendanceModel {
     this.created = "created_at";
     this.updated = "updated_at";
   }
-  fetchEmployeeAttendanceList(date, callback) {
-    const employee = new EmployeeModel();
-    const selectQuery = `SELECT * FROM ${this.employeeTable}
-       INNER JOIN ${employee.tableName} ON ${employee.tableName}.id = ${this.employeeTable}.${this.empID}
-       WHERE ${this.employeeTable}.${this.created} LIKE ?
-       ORDER BY ${this.employeeTable}.${this.updated} DESC;`;
-
-    ipcRenderer.send("select-table-where", selectQuery, "%" + date + "%");
-    ipcRenderer.on("select-table-response", (event, result) => {
-      callback(result);
-    });
-
-    ipcRenderer.on("select-table-response-error", (event, error) => {
-      console.error(error);
-      // Handle the error
-    });
-  }
-
   async fetchUserAttendance(currentData, userType) {
     const studentModel = new StudentsModel()
     const employeeModel = new EmployeeModel()
