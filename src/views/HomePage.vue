@@ -74,13 +74,7 @@ export default {
                 console.log("Student " + barcode)
                 user = await this.studentModel.storeAttendance(data)
             }
-            console.log(data)
-
-            /* this.attendanceModel.storeAttendance(data, (response) => {
-                user = response
-            }) */
             this.profileDetails = user.selectAttendanceProfile
-            console.log(user)
             this.refreshTable()
         },
         getDateTime() {
@@ -105,13 +99,11 @@ export default {
                 .padStart(2, '0')}-${currentDateTime.getDate().toString().padStart(2, '0')}`;
             return formattedDateTime.toString()
         },
-        refreshTable() {
-            this.attendanceModel.fetchEmployeeAttendanceList(this.currentDate(), (response) => {
-                this.attendanceList.employee = response
-            })
-            const studentAttendance = this.attendanceModel.fetchUserAttendance(this.currentDate(), "students")
+        async refreshTable() {
+            const employyeeAttendance = await this.attendanceModel.fetchUserAttendance("%" + this.currentDate() + "%", "employees")
+            this.attendanceList.employee = employyeeAttendance
+            const studentAttendance = this.attendanceModel.fetchUserAttendance("%" + this.currentDate() + "%", "students")
             this.attendanceList.student = studentAttendance
-            console.log(studentAttendance)
         }
     },
 }

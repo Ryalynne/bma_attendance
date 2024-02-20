@@ -17,8 +17,8 @@
                             <th class="text-secondary">DEPARTMENT</th>
                         </tr>
                     </thead>
-                    <tbody v-if="userList.employee">
-                        <tr v-for="item in userList.employee" :key="item.id">
+                    <tbody v-if="employeeList">
+                        <tr v-for="item in employeeList" :key="item.id">
                             <td>{{ item.name }}</td>
                             <td>{{ item.email }}</td>
                             <td>{{ item.department_name }}</td>
@@ -51,8 +51,8 @@
                             <th class="text-secondary">DEPARTMENT</th>
                         </tr>
                     </thead>
-                    <tbody v-if="userList.student">
-                        <tr v-for="item in userList.student" :key="item.id">
+                    <tbody v-if="studentList">
+                        <tr v-for="item in studentList" :key="item.id">
                             <td>{{ item.name }}</td>
                             <td>{{ item.username }}</td>
                             <td>{{ item.course }}</td>
@@ -78,6 +78,8 @@ export default {
             employeeModel: new EmployeeModel(),
             studentModel: new StudentsModel(),
             userList: { 'employee': [], 'student': [] },
+            employeeList: [],
+            studentList: []
         }
     },
     mounted() {
@@ -92,7 +94,7 @@ export default {
                     if (userType === 'employees') {
                         if (response.data.employees) {
                             // Get Employee Details
-                            this.employeeModel.storeEmployee(response.data.employees)
+                            this.employeeModel.storeEmployeeDetails(response.data.employees)
                             // Refresh Table
 
                         }
@@ -103,20 +105,18 @@ export default {
                     }
 
                 }
-                setInterval(() => {
-                    this.userTables()
-                }, 100);
+                this.userTables()
             } catch (error) {
                 console.log("User List Error: " + error)
             }
         },
         userTables() {
             this.employeeModel.fetchAllEmployeeV2((response) => {
-                this.userList.employee = response
+                console.log(response)
+                this.employeeList = response
             })
             this.studentModel.fetchAllStudent((response) => {
-                this.userList.student = response
-                console.log(response)
+                this.studentList = response
             })
         },
     },

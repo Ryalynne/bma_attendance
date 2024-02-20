@@ -253,6 +253,7 @@ ipcMain.on("FETCH_ATTENDANCE", async (event, query, data) => {
   try {
     const database = new sqlite3.Database(dbPath);
     //const fetchAttendance = await fetchQuery(database, query, data);
+    console.log(query)
     const fetchAttendance = await new Promise((resolve, reject) => {
       database.all(query, data, (error, response) => {
         if (error) {
@@ -263,15 +264,13 @@ ipcMain.on("FETCH_ATTENDANCE", async (event, query, data) => {
         }
       });
     });
-
-    console.log(fetchAttendance)
     event.reply("FETCH_ATTENDANCE_RESPONSE", fetchAttendance);
   } catch (error) {
     event.reply("FETCH_ATTENDANCE_ERROR", {
       error: error.message
     });
   } finally {
-    database.close();
+    //database.close();
   };
 
 })
@@ -310,57 +309,70 @@ ipcMain.on("STORE_USER_INFORMATION", (event, dataList, insertQuery, selectQuery)
     })
   });
 });
+ipcMain.on("STORE_EMPLOYEE_INFORMATION", (event, dataList, insertQuery, selectQuery) => {
+  const database = new sqlite3.Database(dbPath);
+  dataList.forEach(element => {
+    //console.log(element)
+    // CHECK IF THE USER IS EXISITING TO THE DATABASE
+    database.get(selectQuery, element.username, (selectError, selectResult) => {
+      if (selectError) {
+        console.log("Error in get-employee query:", selectError.message);
+      } else {
+        if (!selectResult) {
+          const value = [
+            element.name,
+            'staff',
+            element.department,
+            element.email,
+            element.image,
+            1,
+          ];
+          //console.log(value)
+          // Save Employee
+          database.run(insertQuery, value, (error2, result2) => {
+            if (error2) {
+              console.log("Insert Employee Error: " + error2.message);
+            } else {
+              console.log("Save Employee");
+            }
+          });
+        }
+      }
+    })
+  });
+});
 // Store Attendance into Database
 ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
   try {
     const database = new sqlite3.Database(dbPath);
-    const selectResponse = await getUserData(
-      database,
-      queries.selectUser,
-      data.user
-    );
-    const selectDataAttendance = [
-      selectResponse.id,
-      "%" + data.currentDate + "%",
-    ];
-
-    const selectAttendanceResponse = await getAttendanceData(
-      database,
-      queries.selectAttendance,
-      selectDataAttendance
-    );
-
-    const insertValue = [
-      selectResponse.id,
-      data.currentDateTime,
-      null,
-      0,
-      data.currentDateTime,
-      data.currentDateTime,
-    ];
-
+    // Get the User Information
+    const selectResponse = await getUserData(database, queries.selectUser, data.user);
+    // Set the user Attendance Params
+    const selectDataAttendance = [selectResponse.id, "%" + data.currentDate + "%"];
+    // Get the User Attendance using the query and attendance Params
+    const selectAttendanceResponse = await getAttendanceData(database, queries.selectAttendance, selectDataAttendance);
+    // Set the Attendance Details for the User's
+    const insertValue = [selectResponse.id, data.currentDateTime, null, 0, data.currentDateTime, data.currentDateTime];
     let response;
-
+    // First Check the User Attendance if Exisiting
     if (!selectAttendanceResponse) {
+      // If the Attendance is not Exisiting the User's Attendance will Save base on the insertValue
       response = await runQuery(database, queries.insert, insertValue);
+      console.log("Store Attendance")
     } else {
+      // If the Attemdamce os Exisiting
+      // Check the Attendance Response if the time out is Null
       if (selectAttendanceResponse.time_out === null) {
-        const updateValue = [
-          data.currentDateTime,
-          data.currentDateTime,
-          0,
-          selectAttendanceResponse.id,
-        ];
+        const updateValue = [data.currentDateTime, data.currentDateTime, 0, selectAttendanceResponse.id];
+        // Update the Attendance of User's
         response = await runQuery(database, queries.update, updateValue);
+        console.log("Update Attendance")
       } else {
         response = await runQuery(database, queries.insert, insertValue);
+        console.log("Store Attendance Again")
       }
     }
-    const selectAttendanceProfile = await getAttendanceData(
-      database,
-      queries.selectProfile,
-      selectDataAttendance
-    );
+    const selectAttendanceProfile = await getAttendanceData(database, queries.selectProfile, selectDataAttendance);
     event.reply("RESPONSE_EVENT", {
       selectAttendanceResponse,
       selectAttendanceProfile,
@@ -370,7 +382,7 @@ ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
       error: error.message
     });
   } finally {
-    database.close();
+    //database.close();
   }
 });
 
