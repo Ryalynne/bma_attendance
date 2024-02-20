@@ -23,8 +23,8 @@ class StudentsModel {
     const attendanceModel = new AttendanceModel();
     const selectUserQuery = `SELECT * FROM ${this.tableName} WHERE ${this.username} = ?;`;
     const selectQuery = `SELECT * FROM ${attendanceModel.studentTable} WHERE ${attendanceModel.studentID} = ? AND ${attendanceModel.created} LIKE ? ORDER BY id DESC`;
-    const insertQuery = `INSERT INTO ${attendanceModel.studentTable} (${attendanceModel.studentID}, ${attendanceModel.timeIn}, ${attendanceModel.timeOut}, ${attendanceModel.studentID},${attendanceModel.created},${attendanceModel.studentID}) VALUES (?, ?, ?, ?,?,?);`;
-    const updateQuery = `UPDATE ${attendanceModel.studentTable} SET ${attendanceModel.timeOut} = ? ,${attendanceModel.created} = ?, ${attendanceModel.sync} = ? WHERE id = ?`;
+    const insertQuery = `INSERT INTO ${attendanceModel.studentTable} (${attendanceModel.studentID}, ${attendanceModel.timeIn}, ${attendanceModel.timeOut}, ${attendanceModel.sync},${attendanceModel.created},${attendanceModel.updated}) VALUES (?, ?, ?, ?,?,?);`;
+    const updateQuery = `UPDATE ${attendanceModel.studentTable} SET ${attendanceModel.timeOut} = ? ,${attendanceModel.updated} = ?, ${attendanceModel.sync} = ? WHERE id = ?`;
     const selectAttendanceProfile = `SELECT * FROM ${attendanceModel.studentTable}  INNER JOIN ${this.tableName} ON ${this.tableName}.id = ${attendanceModel.studentTable}.${attendanceModel.studentID}
        WHERE ${attendanceModel.studentTable}.${attendanceModel.studentID} = ? AND ${attendanceModel.studentTable}.${attendanceModel.created} LIKE ?
        ORDER BY ${attendanceModel.studentTable}.${attendanceModel.updated} DESC;`;

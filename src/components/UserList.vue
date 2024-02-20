@@ -87,7 +87,6 @@ export default {
     },
     methods: {
         async importEmployeeDetails(userType) {
-            console.log("Import Employee Information")
             try {
                 const response = await axios.get('data-sync');
                 if (response.status == 200) {
@@ -106,6 +105,7 @@ export default {
 
                 }
                 this.userTables()
+                alert("Exporting User Complete!")
             } catch (error) {
                 console.log("User List Error: " + error)
             }
