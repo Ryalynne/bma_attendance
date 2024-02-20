@@ -55,13 +55,13 @@
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody v-if="attendanceList.student">
-                        <tr v-for="item in attendanceList.student" :key="item.id">
+                    <tbody v-if="attendanceList.students">
+                        <tr v-for="item in attendanceList.students" :key="item.id">
                             <td>{{ setName(item) }}</td>
-                            <td>{{ item.course_name }}</td>
+                            <td>{{ item.course }}</td>
                             <td>{{ convertTime(item.time_in) }}</td>
                             <td>{{ item.time_out ? convertTime(item.time_out) : '' }}</td>
-                            <td>{{ convertTime(item.updated_at) }}</td>
+                            <!--  <td>{{ convertTime(item.updated_at) }}</td> -->
                         </tr>
                     </tbody>
                     <tbody v-else>
@@ -76,11 +76,6 @@
 </template>
 <script>
 export default {
-    data() {
-        return {
-            tabActive: 'employee'
-        }
-    },
     methods: {
         linkStyle(data) {
             return this.tabActive == data ? 'nav-link fw-bolder text-success active' : 'nav-link text-muted'
@@ -104,7 +99,7 @@ export default {
         }
     },
     props: {
-        attendanceList: Object, // Pass this prop to indicate if the API is online or not
+        attendanceList: Object, tabActive: 'employee'// Pass this prop to indicate if the API is online or not
     },
 };
 </script>

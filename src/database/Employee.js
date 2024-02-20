@@ -36,7 +36,7 @@ class EmployeeModel {
     const selectUserQuery = `SELECT * FROM ${this.tableName} WHERE ${this.email} = ?;`;
     const selectQuery = `SELECT * FROM ${attendanceModel.employeeTable} WHERE ${attendanceModel.empID} = ? AND ${attendanceModel.created} LIKE ? ORDER BY id DESC`;
     const insertQuery = `INSERT INTO ${attendanceModel.employeeTable} (${attendanceModel.empID}, ${attendanceModel.timeIn}, ${attendanceModel.timeOut}, ${attendanceModel.empID},${attendanceModel.created},${attendanceModel.empID}) VALUES (?, ?, ?, ?,?,?);`;
-    const updateQuery = `UPDATE ${attendanceModel.employeeTable} SET ${attendanceModel.timeOut} = ? ,${attendanceModel.created} = ?, ${attendanceModel.sync} = ? WHERE id = ?`;
+    const updateQuery = `UPDATE ${attendanceModel.employeeTable} SET ${attendanceModel.timeOut} = ? ,${attendanceModel.updated} = ?, ${attendanceModel.sync} = ? WHERE id = ?`;
     const selectAttendanceProfile = `SELECT * FROM ${attendanceModel.employeeTable}  INNER JOIN ${this.tableName} ON ${this.tableName}.id = ${attendanceModel.employeeTable}.${attendanceModel.empID}
        WHERE ${attendanceModel.employeeTable}.${attendanceModel.empID} = ? AND ${attendanceModel.employeeTable}.${attendanceModel.created} LIKE ?
        ORDER BY ${attendanceModel.employeeTable}.${attendanceModel.updated} DESC;`;

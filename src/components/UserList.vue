@@ -113,9 +113,8 @@ export default {
         async userTables() {
             const employee = await this.employeeModel.viewEmployees()
             this.employeeList = employee
-            this.studentModel.fetchAllStudent((response) => {
-                this.studentList = response
-            })
+            const student = await this.studentModel.viewEmployees()
+            this.studentList = student
         },
     },
     props: {

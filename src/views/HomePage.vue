@@ -9,7 +9,7 @@
         </div>
         <div class="col-md-8">
             <card-profile :profileData="profileDetails" />
-            <attendance-list :attendanceList="attendanceList" />
+            <attendance-list :attendanceList="attendanceList" :tabActive="tabActive" />
         </div>
     </div>
 </template>
@@ -33,7 +33,8 @@ export default {
             attendanceList: { 'employee': [], 'students': [] },
             attendanceModel: new AttendanceModel(),
             employeeModel: new EmployeeModel(),
-            studentModel: new StudentsModel()
+            studentModel: new StudentsModel(),
+            tabActive: 'employee'
         }
     },
     mounted() {
@@ -68,11 +69,12 @@ export default {
                 this.attendanceList.employee = []
                 data['user'] = employee
                 user = await this.employeeModel.storeAttendance(data)
-                console.log("Employee: " + employee)
+                this.tabActive = 'employee'
             } else {
                 // Student Attendance
                 console.log("Student " + barcode)
                 user = await this.studentModel.storeAttendance(data)
+                this.tabActive = 'student'
             }
             this.profileDetails = user.selectAttendanceProfile
             this.refreshTable()
@@ -102,8 +104,9 @@ export default {
         async refreshTable() {
             const employyeeAttendance = await this.attendanceModel.fetchUserAttendance("%" + this.currentDate() + "%", "employees")
             this.attendanceList.employee = employyeeAttendance
-            const studentAttendance = this.attendanceModel.fetchUserAttendance("%" + this.currentDate() + "%", "students")
-            this.attendanceList.student = studentAttendance
+            const studentAttendance = await this.attendanceModel.fetchUserAttendance("%" + this.currentDate() + "%", "students")
+            this.attendanceList.students = studentAttendance
+            console.log(studentAttendance)
         }
     },
 }
