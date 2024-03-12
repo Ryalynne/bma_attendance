@@ -83,7 +83,7 @@ export default {
         }
     },
     mounted() {
-        this.userTables()
+        // this.userTables()
     },
     methods: {
         async importEmployeeDetails(userType) {

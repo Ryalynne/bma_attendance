@@ -38,7 +38,7 @@ export default {
         }
     },
     mounted() {
-        this.refreshTable()
+        //this.refreshTable()
     },
     methods: {
         handleKeyDown(event) {

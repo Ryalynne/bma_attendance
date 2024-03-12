@@ -56,7 +56,7 @@ export default {
                 if (response) {
                     this.isApiOnline = true
                     this.attendanceList = response.data.data
-                    this.attendanceModel.apiStoreAttendance()
+                    //this.attendanceModel.apiStoreAttendance()
                 } else {
                     this.isApiOnline = false
                 }

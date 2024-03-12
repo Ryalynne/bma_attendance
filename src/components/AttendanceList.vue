@@ -75,6 +75,7 @@
     </div>
 </template>
 <script>
+/* eslint-disable */
 export default {
     methods: {
         linkStyle(data) {

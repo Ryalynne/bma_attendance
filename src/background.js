@@ -28,7 +28,6 @@ const path = require("path");
 // Global  Variable
 let win;
 let db;
-const dbPath = path.join(app.getAppPath(), "database.db");
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{
   scheme: "app",
@@ -92,6 +91,38 @@ function createDatabase() {
     });
   });
 }
+// Create Database v2
+function createDatabaseV1() {
+    /* const dbPath = path.resolve(__dirname, 'database.db');
+    // Connect to SQLite database
+    let db = new sqlite3.Database(dbPath, (err) => {
+      if (err) {
+        console.error('Error opening database: ', err.message);
+      } else {
+        console.info('Connected to the database.');
+      }
+    });
+ */
+    /*  const dbPath = path.resolve(__dirname, "database.db");
+    const database = new sqlite3.Database(dbPath);
+    database.serialize(() => {
+      database.run(
+        "CREATE TABLE IF NOT EXISTS employee_account (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, department_name TEXT, position TEXT, email TEXT, image TEXT NULL, is_actived INTEGER)"
+      );
+      database.run(
+        "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT,name TEXT, course TEXT, image TEXT NULL, year_level TEXT NULL, is_actived INTEGER)"
+      );
+      database.run(
+        "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      );
+      database.run(
+        "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      );
+    })
+  } catch (error) {
+    console.log(error)
+  } */
+}
 // Quit when all windows are closed.
 app.on("window-all-closed", () => {
   // On macOS it is common for applications and their menu bar
@@ -139,6 +170,7 @@ if (isDevelopment) {
     });
   }
 }
+
 // Select Table
 ipcMain.on("select-table", (event, query) => {
   db.all(query, (error, response) => {
@@ -161,6 +193,11 @@ ipcMain.on("select-table-where", (event, query, data) => {
   });
   database.close();
 });
+// TESTING OPEN DATABASE
+ipcMain.on("OPEN_DATABASE", async (event) => {
+  const selectResponse = await openDatabase()
+  console.log(selectResponse)
+})
 // GET USER'S INFORMATION
 ipcMain.on("FETCH_USER_INFO", async (event, query) => {
   try {
