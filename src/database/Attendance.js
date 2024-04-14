@@ -74,6 +74,20 @@ class AttendanceModel {
       });
     })
   }
+  studentDataToSync() {
+    const model = new StudentsModel();
+    const selectQuery = `SELECT ${this.studentTable}.id,${model.tableName}.${model.username},${this.studentTable}.${this.responseId},
+    ${this.studentTable}.${this.timeIn}, ${this.studentTable}.${this.timeOut} FROM ${this.studentTable}
+    INNER JOIN ${model.tableName} ON ${model.tableName}.id = ${this.studentTable}.${this.studentID}
+    WHERE ${this.sync} = 0;`;
+    const updateQuery = `UPDATE ${this.studentTable} SET ${this.sync} = ?, ${this.responseId} = ? WHERE id = ?`;
+    ipcRenderer.send(
+      "STORE_ATTENDANCE_API",
+      selectQuery,
+      updateQuery,
+      "student-attendance"
+    );
+  }
   apiStoreAttendance() {
     const employee = new EmployeeModel();
     const selectQuery = `SELECT ${this.employeeTable}.id,${employee.tableName}.${employee.email},${this.employeeTable}.${this.responseId},
@@ -81,12 +95,14 @@ class AttendanceModel {
     INNER JOIN ${employee.tableName} ON ${employee.tableName}.id = ${this.employeeTable}.${this.empID}
     WHERE ${this.sync} = 0;`;
     const updateQuery = `UPDATE ${this.employeeTable} SET ${this.sync} = ?, ${this.responseId} = ? WHERE id = ?`;
+
     ipcRenderer.send(
       "STORE_ATTENDANCE_API",
       selectQuery,
       updateQuery,
-      "http://127.0.0.1:70/api/employee-attendance"
+      "employee-attendance"
     );
+    this.studentDataToSync()
   }
 }
 

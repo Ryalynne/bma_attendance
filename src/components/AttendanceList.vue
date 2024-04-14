@@ -7,7 +7,7 @@
             <a :class="linkStyle('student')" @click="changeStatus('student')">STUDENT</a>
         </li>
     </ul>
-    <div v-if="tabActive == 'employee'">
+    <div v-if="tabContent == 'employee'">
         <div class="card shadow border border-white mt-3">
             <div class="card-header">
                 <p class="h4 text-success"><b>EMPLOYEE'S ATTENDANCE LIST</b></p>
@@ -22,7 +22,7 @@
                             <th class="text-secondary">TIME OUT</th>
                         </tr>
                     </thead>
-                    <tbody v-if="attendanceList.employee">
+                    <tbody v-if="attendanceList.employee.length">
                         <tr v-for="item in attendanceList.employee" :key="item.id">
                             <td>{{ setName(item) }}</td>
                             <td>{{ item.department_name }}</td>
@@ -39,7 +39,7 @@
             </div>
         </div>
     </div>
-    <div v-if="tabActive == 'student'">
+    <div v-if="tabContent == 'student'">
         <div class="card shadow border border-white mt-3">
             <div class="card-header">
                 <p class="h4 text-success"><b>MIDSHIPMAN'S ATTENDANCE LIST</b></p>
@@ -55,7 +55,7 @@
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody v-if="attendanceList.students">
+                    <tbody v-if="attendanceList.students.length">
                         <tr v-for="item in attendanceList.students" :key="item.id">
                             <td>{{ setName(item) }}</td>
                             <td>{{ item.course }}</td>
@@ -77,12 +77,17 @@
 <script>
 /* eslint-disable */
 export default {
+    data() {
+        return {
+            tabContent: this.tabActive
+        }
+    },
     methods: {
         linkStyle(data) {
-            return this.tabActive == data ? 'nav-link fw-bolder text-success active' : 'nav-link text-muted'
+            return this.tabContent == data ? 'nav-link fw-bolder text-success active' : 'nav-link text-muted'
         },
         changeStatus(data) {
-            this.tabActive = data
+            this.tabContent = data
             console.log(data)
         },
         setName(data) {
@@ -100,7 +105,7 @@ export default {
         }
     },
     props: {
-        attendanceList: Object, tabActive: 'employee'// Pass this prop to indicate if the API is online or not
+        attendanceList: Object, tabActive: String// Pass this prop to indicate if the API is online or not
     },
 };
 </script>

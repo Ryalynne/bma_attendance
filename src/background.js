@@ -22,12 +22,27 @@ import installExtension, {
 } from "electron-devtools-installer";
 import axios from "axios";
 const sqlite3 = require("sqlite3");
+const {
+  net
+} = require('electron');
 const isDevelopment = process.env.NODE_ENV !== "production";
 //const fs = require("fs");
 const path = require("path");
+//dbPath = path.join(appPath, "database.db"););
+let dbPath = path.join(app.getPath('userData'), 'mydatabase.db');
+console.log(app.getPath('userData'))
 // Global  Variable
 let win;
 let db;
+let apiServer;
+// Set the API Server Link
+if (process.env.NODE_ENV === "production") {
+  apiServer = "http://one.bma.edu.ph/api/";
+  /*  apiServer = "http://192.168.100.6:7000/api/"; */
+} else {
+  apiServer = "http://127.0.0.1:70/api/";
+  //apiServer = "http://one.bma.edu.ph/api/";
+}
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{
   scheme: "app",
@@ -60,16 +75,13 @@ async function createWindow() {
     // Load the index.html when not in development
     win.loadURL("app://./index.html");
   }
+  // Check network status when the main window is ready
+  win.webContents.once('dom-ready', checkNetworkStatus);
 }
 // Create Database
-function createDatabase() {
-  const appPath = app.getAppPath();
-  console.log(appPath);
-  //dbPath = path.join(appPath, "database.db");
-
-  // File exists, create the database connection
+function createDatabase() { // File exists, create the database connection
+  dbPath = path.join(app.getPath('userData'), 'mydatabase.db');
   db = new sqlite3.Database(dbPath); // Use the global db variable
-
   db.serialize(() => {
     // Create tables if they don't exist
     db.run(
@@ -90,38 +102,6 @@ function createDatabase() {
       win.webContents.send("db", db);
     });
   });
-}
-// Create Database v2
-function createDatabaseV1() {
-    /* const dbPath = path.resolve(__dirname, 'database.db');
-    // Connect to SQLite database
-    let db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        console.error('Error opening database: ', err.message);
-      } else {
-        console.info('Connected to the database.');
-      }
-    });
- */
-    /*  const dbPath = path.resolve(__dirname, "database.db");
-    const database = new sqlite3.Database(dbPath);
-    database.serialize(() => {
-      database.run(
-        "CREATE TABLE IF NOT EXISTS employee_account (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, department_name TEXT, position TEXT, email TEXT, image TEXT NULL, is_actived INTEGER)"
-      );
-      database.run(
-        "CREATE TABLE IF NOT EXISTS student_account (id INTEGER PRIMARY KEY, username TEXT,name TEXT, course TEXT, image TEXT NULL, year_level TEXT NULL, is_actived INTEGER)"
-      );
-      database.run(
-        "CREATE TABLE IF NOT EXISTS employee_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
-      );
-      database.run(
-        "CREATE TABLE IF NOT EXISTS student_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, time_in TEXT, time_out TEXT NULL, response_id INTEGER NULL, is_sync INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
-      );
-    })
-  } catch (error) {
-    console.log(error)
-  } */
 }
 // Quit when all windows are closed.
 app.on("window-all-closed", () => {
@@ -170,6 +150,27 @@ if (isDevelopment) {
     });
   }
 }
+
+function checkNetworkStatus() {
+
+  const request = net.request(`${apiServer}'attendance'`);
+
+  request.on('response', (response) => {
+    console.log(`STATUS: ${response.statusCode}`);
+    win.webContents.send('network-status', true); // Send status to renderer process
+  });
+
+  request.on('error', () => {
+    console.log('No internet connection');
+    win.webContents.send('network-status', false); // Send status to renderer process
+  });
+
+  request.end();
+}
+// Listen for the network status request from the renderer process
+ipcMain.on('request-network-status', (event) => {
+  checkNetworkStatus(); // Call the network status function when requested
+});
 
 // Select Table
 ipcMain.on("select-table", (event, query) => {
@@ -315,6 +316,100 @@ ipcMain.on("STORE_EMPLOYEE_INFORMATION", (event, dataList, insertQuery, selectQu
     })
   });
 });
+ipcMain.on("STORE_EMPLOYEE_INFORMATION_V2", (event, insertQuery, selectQuery) => {
+  const database = new sqlite3.Database(dbPath);
+  axios.get(`${apiServer}data-sync`)
+    .then((response) => {
+      console.log(apiServer)
+      let dataList = response.data.employees
+      dataList.forEach(element => {
+        //console.log(element)
+        // CHECK IF THE USER IS EXISITING TO THE DATABASE
+        //console.log(element.email)
+        database.get(selectQuery, element.email, (selectError, selectResult) => {
+          if (selectError) {
+            console.log("Error in get-employee query:", selectError.message);
+          } else {
+            if (!selectResult) {
+              const value = [
+                element.name,
+                'staff',
+                element.department,
+                element.email,
+                element.image,
+                1,
+              ];
+              //console.log(value)
+              // Save Employee
+              database.run(insertQuery, value, (error2, result2) => {
+                if (error2) {
+                  console.log("Insert Employee Error: " + error2.message);
+                } else {
+                  console.log("Save Employee");
+                }
+              });
+            }
+          }
+        })
+      });
+      event.reply("FETCH_ADD_USER_RESPONSE", dataList);
+    })
+    .catch((error) => {
+      event.reply("FETCH_USER_INFO_ERROR", {
+        error: error.message
+      });
+      console.log("Error in get-employee query:", error.message);
+    })
+
+});
+ipcMain.on("STORE_STUDENTS_INFORMATION_V2", (event, insertQuery, selectQuery) => {
+  const database = new sqlite3.Database(dbPath);
+  axios.get(`${apiServer}data-sync`)
+    .then((response) => {
+      console.log(apiServer)
+      let dataList = response.data.students
+      dataList.forEach(element => {
+        //console.log(element)
+        // CHECK IF THE USER IS EXISITING TO THE DATABASE
+        //console.log(element.email)
+        database.get(selectQuery, element.username, (selectError, selectResult) => {
+          if (selectError) {
+            console.log("Error in get-employee query:", selectError.message);
+          } else {
+            if (!selectResult) {
+              const year_level = element.course ? element.course.year_level : 'n.a'
+              const course = element.course ? element.course.course.course_name : 'n.a'
+              const value = [
+                element.username,
+                element.name,
+                course,
+                element.image,
+                year_level,
+                1,
+              ];
+              //console.log(value)
+              // Save Employee
+              database.run(insertQuery, value, (error2, result2) => {
+                if (error2) {
+                  console.log("Insert STUDENT Error: " + error2.message);
+                } else {
+                  console.log("Save STUDENT");
+                }
+              });
+            }
+          }
+        })
+      });
+      event.reply("FETCH_ADD_USER_RESPONSE", dataList);
+    })
+    .catch((error) => {
+      event.reply("FETCH_USER_INFO_ERROR", {
+        error: error.message
+      });
+      console.log("Error in get-employee query:", error.message);
+    })
+
+});
 // Store Attendance into Database
 ipcMain.on("STORE_ATTENDANCE", async (event, queries, data) => {
   try {
@@ -427,14 +522,13 @@ ipcMain.on(
           }
         });
       });
-
       const updatePromises = attendanceList.map(async (element) => {
         try {
-          const response = await axios.post(apiUrl, element);
-          console.log(element);
+          const response = await axios.post(apiServer + apiUrl, element);
+          //console.log(response);
           const dataAttendance = [1, response.data.response_id, element.id];
           await runQuery(database, updateQuery, dataAttendance);
-          console.log("Response:", response.data);
+          console.log("Response:", response.data.response_id);
         } catch (error) {
           console.error("Error sending attendance data:", error);
         }

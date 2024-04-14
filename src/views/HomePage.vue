@@ -38,7 +38,7 @@ export default {
         }
     },
     mounted() {
-        //this.refreshTable()
+        this.refreshTable()
     },
     methods: {
         handleKeyDown(event) {
@@ -61,6 +61,7 @@ export default {
                 currentDateTime: this.getDateTime()
             }
             var username = barcode.includes('employee')
+            var tabContent = ''
             if (username) {
                 // Employee Attendance
                 console.log(username)
@@ -69,13 +70,14 @@ export default {
                 this.attendanceList.employee = []
                 data['user'] = employee
                 user = await this.employeeModel.storeAttendance(data)
-                this.tabActive = 'employee'
+                tabContent = 'employee'
             } else {
                 // Student Attendance
                 console.log("Student " + barcode)
                 user = await this.studentModel.storeAttendance(data)
-                this.tabActive = 'student'
+                tabContent = 'student'
             }
+            this.tabActive = tabContent
             this.profileDetails = user.selectAttendanceProfile
             this.refreshTable()
         },
@@ -106,7 +108,7 @@ export default {
             this.attendanceList.employee = employyeeAttendance
             const studentAttendance = await this.attendanceModel.fetchUserAttendance("%" + this.currentDate() + "%", "students")
             this.attendanceList.students = studentAttendance
-            console.log(studentAttendance)
+            console.log(employyeeAttendance)
         }
     },
 }

@@ -30,6 +30,25 @@ class EmployeeModel {
   VALUES (?, ?, ?, ?, ?, ?);`;
     ipcRenderer.send("STORE_EMPLOYEE_INFORMATION", dataList, insertQuery, selectQuery);
   }
+  async storeEmployeeDetailsV2() {
+    const selectQuery = `SELECT * FROM ${this.tableName} WHERE ${this.email} = ?;`;
+    const insertQuery = `INSERT INTO ${this.tableName} (${this.name}, ${this.position}, ${this.department}, ${this.email}, image,is_actived)
+  VALUES (?, ?, ?, ?, ?, ?);`;
+    console.log("Employee Model")
+    try {
+      const response = await this.sendAddUser(insertQuery, selectQuery)
+      return {
+        status: 200,
+        data: response
+      }
+    } catch (error) {
+      return {
+        status: 404,
+        message: error.error
+      }
+    }
+    //ipcRenderer.send("STORE_EMPLOYEE_INFORMATION_V2", insertQuery, selectQuery);
+  }
   // Store Employee Attendance
   storeAttendance(dataArray) {
     const attendanceModel = new AttendanceModel();
@@ -64,6 +83,19 @@ class EmployeeModel {
       ipcRenderer.send("FETCH_USER_INFO", query);
 
       ipcRenderer.once("FETCH_USER_INFO_RESPONSE", (event, response) => {
+        resolve(response);
+      });
+
+      ipcRenderer.once("FETCH_USER_INFO_ERROR", (event, error) => {
+        reject(error);
+      });
+    })
+  }
+  sendAddUser(insertQuery, selectQuery) {
+    return new Promise((resolve, reject) => {
+      console.log("Send Add User")
+      ipcRenderer.send("STORE_EMPLOYEE_INFORMATION_V2", insertQuery, selectQuery);
+      ipcRenderer.once("FETCH_ADD_USER_RESPONSE", (event, response) => {
         resolve(response);
       });
 

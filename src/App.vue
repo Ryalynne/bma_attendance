@@ -32,7 +32,7 @@ export default {
     data() {
         return {
             isApiOnline: false,
-            pollInterval: 5000, // Poll every 5 seconds,
+            pollInterval: 10000, // Poll every 5 seconds,
             attendanceModel: new AttendanceModel(),
         }
     },
@@ -56,7 +56,7 @@ export default {
                 if (response) {
                     this.isApiOnline = true
                     this.attendanceList = response.data.data
-                    //this.attendanceModel.apiStoreAttendance()
+                    this.attendanceModel.apiStoreAttendance()
                 } else {
                     this.isApiOnline = false
                 }
